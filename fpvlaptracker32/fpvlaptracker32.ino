@@ -305,7 +305,7 @@ void loop() {
 			}
 		} else if (stateManager.isStateRssi()) {
 			if (millis() > fastRssiTimeout) {
-				fastRssiTimeout = millis() + 100;
+				fastRssiTimeout = millis() + 250;
 				btComm.sendFastRssiData(rssi.getRssi());
 			}
 		} else if (stateManager.isStateCalibration()) {
