@@ -92,7 +92,6 @@ void setState(statemanagement::state_enum state) {
 	stateManager.setState(state);
 	btComm.setState(stateManager.toString(stateManager.getState()));
 }
-
 /*---------------------------------------------------
  * application setup
  *-------------------------------------------------*/
@@ -232,24 +231,24 @@ void setup() {
 void loop() {
 
 	batteryMgr.measure();
-	if (batteryMgr.isShutdown()) {
-#ifdef DEBUG
-		Serial.println(F("voltage isShutdown"));
-#endif
-		blinkError(9);
-	} else if (!lowVoltageSent && batteryMgr.isAlarm()) {
-#ifdef DEBUG
-		Serial.println(F("voltage isAlarm"));
-#endif
-		// undervoltage
-		if (btComm.isConnected() && btComm.hasClient()) {
-#ifdef DEBUG
-			Serial.println(F("voltage sendAlarm"));
-#endif
-			btComm.sendVoltageAlarm();
-			lowVoltageSent = true;
-		}
-	}
+// 	if (batteryMgr.isShutdown() && !webUpdateMode) {
+// #ifdef DEBUG
+// 		Serial.println(F("voltage isShutdown"));
+// #endif
+// 		blinkError(9);
+// 	} else if (!lowVoltageSent && batteryMgr.isAlarm()) {
+// #ifdef DEBUG
+// 		Serial.println(F("voltage isAlarm"));
+// #endif
+// 		// undervoltage
+// 		if (btComm.isConnected() && btComm.hasClient()) {
+// #ifdef DEBUG
+// 			Serial.println(F("voltage sendAlarm"));
+// #endif
+// 			btComm.sendVoltageAlarm();
+// 			lowVoltageSent = true;
+// 		}
+// 	}
 
 	led.run();
 	if (webUpdateMode) {

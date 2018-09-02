@@ -5,7 +5,9 @@
 namespace battery {
 
     const unsigned int NR_OF_MEASURES = 10;
-    const double CORRECTION_FACTOR = 0.010473633;
+    const double CONVERSATION_FACTOR = 0.00506;
+    const double CORRECTION_FACTOR = 1.15819209;
+    const double CORRECTION_OFFSET = -1.580225989;
 
     class BatteryMgr {
     public:
@@ -15,6 +17,10 @@ namespace battery {
 
         void detectCellsAndSetup();
         void measure();
+
+        double linearize(double value) {
+            return CORRECTION_FACTOR * value + CORRECTION_OFFSET;
+        }
 
         void setAlarmVoltage(double alarmVoltage) {
             this->_alarmVoltage = alarmVoltage;

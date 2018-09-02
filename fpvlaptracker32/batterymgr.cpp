@@ -14,10 +14,11 @@ void BatteryMgr::measure() {
         this->_nrOfMeasures++;
         if (this->_nrOfMeasures >= NR_OF_MEASURES) {
             this->_sum /= NR_OF_MEASURES;
-            this->_voltageReading = this->_sum * CORRECTION_FACTOR;
+            this->_voltageReading = this->_sum * CONVERSATION_FACTOR;
 #ifdef DEBUG
-            Serial.printf("sum: %f, voltageReading: %f\n", this->_sum, this->_voltageReading);
+            Serial.printf("sum: %f, voltageReading: %f, linearized: %f\n", this->_sum, this->_voltageReading, this->linearize(this->_voltageReading));
 #endif
+            this->_voltageReading = this->linearize(this->_voltageReading);
             this->_nrOfMeasures = 0;
             this->_sum = 0.0;
             this->_lastRun = millis();
@@ -30,7 +31,9 @@ void BatteryMgr::measure() {
 
 void BatteryMgr::detectCellsAndSetup() {
 
+    analogSetWidth(12);
     analogSetPinAttenuation(this->_pin, ADC_11db);
+//    analogSetPinAttenuation(this->_pin, ADC_6db);
     delay(100);
 
     double sum = 0.0;
@@ -43,10 +46,12 @@ void BatteryMgr::detectCellsAndSetup() {
 #ifdef DEBUG
     Serial.printf("voltage raw: %f\n", sum);
 #endif
-    sum *= CORRECTION_FACTOR;
+    sum *= CONVERSATION_FACTOR;
 #ifdef DEBUG
     Serial.printf("voltage detect: %f\n", sum);
+    Serial.printf("voltage detect linearized: %f\n", this->linearize(sum));
 #endif
+    sum = this->linearize(sum);
     // 2s 7,4-8,4 -> 7-9
     // 3s 11,1-12,6 -> 10-13
     // 4s 14,8-16,8 -> 14-17
