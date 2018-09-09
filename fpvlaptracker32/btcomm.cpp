@@ -168,25 +168,25 @@ void BtComm::processGetConfig() {
  * received store config message
  *-------------------------------------------------*/
 void BtComm::processStoreConfig() {
-  // received config
-  DynamicJsonBuffer jsonBuffer(200);
-  JsonObject& root = jsonBuffer.parseObject(this->_serialString.substring(11));
-  if (!root.success()) {
+    // received config
+    DynamicJsonBuffer jsonBuffer(200);
+    JsonObject& root = jsonBuffer.parseObject(this->_serialString.substring(11));
+    if (!root.success()) {
 #ifdef DEBUG
-    Serial.println(F("failed to parse config"));
+        Serial.println(F("failed to parse config"));
 #endif
-    this->sendBtMessageWithNewline(F("SETCONFIG: NOK"));
-  } else {
-    this->_storage->setMinLapTime(root["minimumLapTime"]);
-    this->_storage->setSsid(root["ssid"]);
-    this->_storage->setWifiPassword(root["password"]);
-    this->_storage->setChannelIndex(freq::Frequency::getChannelIndexForFrequency(root["frequency"]));
-    this->_storage->setTriggerThreshold(root["triggerThreshold"]);
-    this->_storage->setTriggerThresholdCalibration(root["triggerThresholdCalibration"]);
-    this->_storage->setCalibrationOffset(root["calibrationOffset"]);
-    this->_storage->store();
-    this->sendBtMessageWithNewline(F("SETCONFIG: OK"));
-  }
+        this->sendBtMessageWithNewline(F("SETCONFIG: NOK"));
+    } else {
+        this->_storage->setMinLapTime(root["minimumLapTime"]);
+        this->_storage->setSsid(root["ssid"]);
+        this->_storage->setWifiPassword(root["password"]);
+        this->_storage->setChannelIndex(freq::Frequency::getChannelIndexForFrequency(root["frequency"]));
+        this->_storage->setTriggerThreshold(root["triggerThreshold"]);
+        this->_storage->setTriggerThresholdCalibration(root["triggerThresholdCalibration"]);
+        this->_storage->setCalibrationOffset(root["calibrationOffset"]);
+        this->_storage->store();
+        this->sendBtMessageWithNewline(F("SETCONFIG: OK"));
+    }
 }
 
 void BtComm::setState(String state) {

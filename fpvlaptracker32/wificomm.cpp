@@ -120,7 +120,7 @@ void WifiComm::reg() {
 #ifdef DEBUG 
     Serial.println(F("sending register message"));
 #endif
-    String msg = "{\"type\":\"registerbt2\",\"chipid\":";
+    String msg = "{\"type\":\"register32\",\"chipid\":";
     msg += static_cast<unsigned long>(ESP.getEfuseMac());
     msg += ",\"ip\":";
     msg += WiFi.localIP();
