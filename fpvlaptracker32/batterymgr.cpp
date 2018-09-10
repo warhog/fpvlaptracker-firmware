@@ -6,7 +6,7 @@ using namespace battery;
 
 void BatteryMgr::measure() {
     if (((millis() - this->_lastRun) > 30000 && !this->_measuring) || ((millis() - this->_lastRun) > 10 && this->_measuring)) {
-        unsigned int batteryRaw = analogRead(this->_pin);
+        unsigned int batteryRaw = adc1_get_raw(this->_chan);
 #ifdef DEBUG
         Serial.printf("batteryRaw: %d\n", batteryRaw);
 #endif
@@ -14,11 +14,10 @@ void BatteryMgr::measure() {
         this->_nrOfMeasures++;
         if (this->_nrOfMeasures >= NR_OF_MEASURES) {
             this->_sum /= NR_OF_MEASURES;
-            this->_voltageReading = this->_sum * CONVERSATION_FACTOR;
+            this->_voltageReading = static_cast<double>(esp_adc_cal_raw_to_voltage(this->_sum, this->_adcChars)) / 1000.0 * CONVERSATION_FACTOR;
 #ifdef DEBUG
-            Serial.printf("sum: %f, voltageReading: %f, linearized: %f\n", this->_sum, this->_voltageReading, this->linearize(this->_voltageReading));
+            Serial.printf("sum: %f, voltageReading: %f, cell voltage: %f\n", this->_sum, this->_voltageReading, this->_voltageReading / this->_cells);
 #endif
-            this->_voltageReading = this->linearize(this->_voltageReading);
             this->_nrOfMeasures = 0;
             this->_sum = 0.0;
             this->_lastRun = millis();
@@ -31,27 +30,37 @@ void BatteryMgr::measure() {
 
 void BatteryMgr::detectCellsAndSetup() {
 
-    analogSetWidth(12);
-    analogSetPinAttenuation(this->_pin, ADC_11db);
-//    analogSetPinAttenuation(this->_pin, ADC_6db);
-    delay(100);
+    adc1_config_width(ADC_WIDTH_BIT_11);
+    adc1_config_channel_atten(this->_chan, ADC_ATTEN_DB_11);
+
+    esp_adc_cal_value_t val_type = esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_11, DEFAULT_VREF, this->_adcChars);
+#ifdef DEBUG
+    Serial.print(F("adc calibration data: "));
+    if (val_type == ESP_ADC_CAL_VAL_EFUSE_VREF) {
+        Serial.println(F("eFuse VREF"));
+    } else if (val_type == ESP_ADC_CAL_VAL_EFUSE_TP) {
+        Serial.println(F("2 point VREF"));
+    } else {
+        Serial.printf("default VREF: %d\n", DEFAULT_VREF);
+    }
+#endif
+    delay(250);
 
     double sum = 0.0;
     for (unsigned int i = 0; i < NR_OF_MEASURES; i++) {
-        unsigned int batteryRaw = analogRead(this->_pin);
+        unsigned int batteryRaw = adc1_get_raw(this->_chan);
         sum += batteryRaw;
-        delay(10);
+        delay(5);
     }
     sum /= NR_OF_MEASURES;
 #ifdef DEBUG
     Serial.printf("voltage raw: %f\n", sum);
 #endif
+    sum = static_cast<double>(esp_adc_cal_raw_to_voltage(sum, this->_adcChars)) / 1000.0;
     sum *= CONVERSATION_FACTOR;
 #ifdef DEBUG
     Serial.printf("voltage detect: %f\n", sum);
-    Serial.printf("voltage detect linearized: %f\n", this->linearize(sum));
 #endif
-    sum = this->linearize(sum);
     // 2s 7,4-8,4 -> 7-9
     // 3s 11,1-12,6 -> 10-13
     // 4s 14,8-16,8 -> 14-17
