@@ -30,7 +30,7 @@ void BatteryMgr::measure() {
 
 void BatteryMgr::detectCellsAndSetup() {
 
-    adc1_config_width(ADC_WIDTH_BIT_11);
+    adc1_config_width(ADC_WIDTH_BIT_12);
     adc1_config_channel_atten(this->_chan, ADC_ATTEN_DB_11);
 
     esp_adc_cal_value_t val_type = esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_11, DEFAULT_VREF, this->_adcChars);

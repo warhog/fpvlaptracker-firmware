@@ -7,7 +7,7 @@
 namespace battery {
 
     const unsigned int NR_OF_MEASURES = 100;
-    const double CONVERSATION_FACTOR = 10.91851852;
+    const double CONVERSATION_FACTOR = 5.778132482;
     const unsigned int DEFAULT_VREF = 1089;
 
     class BatteryMgr {
