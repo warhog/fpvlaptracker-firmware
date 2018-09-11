@@ -32,8 +32,9 @@ void BatteryMgr::detectCellsAndSetup() {
 
     adc1_config_width(ADC_WIDTH_BIT_12);
     adc1_config_channel_atten(this->_chan, ADC_ATTEN_DB_11);
+    this->_defaultVref = this->_storage->getDefaultVref();
 
-    esp_adc_cal_value_t val_type = esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_11, DEFAULT_VREF, this->_adcChars);
+    esp_adc_cal_value_t val_type = esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_11, this->_defaultVref, this->_adcChars);
 #ifdef DEBUG
     Serial.print(F("adc calibration data: "));
     if (val_type == ESP_ADC_CAL_VAL_EFUSE_VREF) {
@@ -41,7 +42,7 @@ void BatteryMgr::detectCellsAndSetup() {
     } else if (val_type == ESP_ADC_CAL_VAL_EFUSE_TP) {
         Serial.println(F("2 point VREF"));
     } else {
-        Serial.printf("default VREF: %d\n", DEFAULT_VREF);
+        Serial.printf("default VREF: %d\n", this->_defaultVref);
     }
 #endif
     delay(250);

@@ -4,15 +4,19 @@
 #include <driver/adc.h>
 #include <esp_adc_cal.h>
 
+#include "storage.h"
+
+//#define DEBUG
+
 namespace battery {
 
     const unsigned int NR_OF_MEASURES = 100;
     const double CONVERSATION_FACTOR = 5.778132482;
-    const unsigned int DEFAULT_VREF = 1089;
+    //const unsigned int DEFAULT_VREF = 1089;
 
     class BatteryMgr {
     public:
-        BatteryMgr(uint8_t pin) : _pin(pin), _lastRun(0L), _nrOfMeasures(0), _sum(0L), _alarmVoltage(-1.0), _voltageReading(255.0), _shutdownVoltage(-1.0), _measuring(true), _cells(0), _chan(ADC1_CHANNEL_4) {
+        BatteryMgr(uint8_t pin, util::Storage *storage) : _pin(pin), _lastRun(0L), _nrOfMeasures(0), _sum(0L), _alarmVoltage(-1.0), _voltageReading(255.0), _shutdownVoltage(-1.0), _measuring(true), _cells(0), _chan(ADC1_CHANNEL_4), _storage(storage), _defaultVref(1100) {
             pinMode(this->_pin, INPUT);
 
             this->_adcChars = new esp_adc_cal_characteristics_t;
@@ -38,6 +42,7 @@ namespace battery {
             default:
                 for (;;) {}
             }
+
         }
 
         void detectCellsAndSetup();
@@ -101,6 +106,8 @@ namespace battery {
         unsigned int _cells;
         adc1_channel_t _chan;
         esp_adc_cal_characteristics_t *_adcChars;
+        util::Storage *_storage;
+        unsigned int _defaultVref;
     };
 
 }

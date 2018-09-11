@@ -161,6 +161,7 @@ void BtComm::processGetConfig() {
     root["triggerValue"] = this->_lapDetector->getTriggerValue();
     root["voltage"] = this->_batteryMgr->getVoltage();
     root["uptime"] = millis() / 1000;
+    root["defaultVref"] = this->_storage->getDefaultVref();
     this->sendJson(root);
 }
 
@@ -184,6 +185,7 @@ void BtComm::processStoreConfig() {
         this->_storage->setTriggerThreshold(root["triggerThreshold"]);
         this->_storage->setTriggerThresholdCalibration(root["triggerThresholdCalibration"]);
         this->_storage->setCalibrationOffset(root["calibrationOffset"]);
+        this->_storage->setDefaultVref(root["defaultVref"]);
         this->_storage->store();
         this->sendBtMessageWithNewline(F("SETCONFIG: OK"));
     }

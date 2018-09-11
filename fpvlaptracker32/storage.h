@@ -38,6 +38,13 @@ namespace util {
             return this->_triggerThreshold;
         }
 
+        void setDefaultVref(unsigned int defaultVref) {
+            this->_defaultVref = defaultVref;
+        }
+        unsigned int getDefaultVref() {
+            return this->_defaultVref;
+        }
+
         void setCalibrationOffset(unsigned int calibrationOffset) {
             this->_calibrationOffset = calibrationOffset;
         }
@@ -73,6 +80,7 @@ namespace util {
         unsigned int _calibrationOffset;
         String _ssid;
         String _wifiPassword;
+        unsigned int _defaultVref;
 
         struct StorageEepromStruct {
             char version[4];
@@ -83,6 +91,7 @@ namespace util {
             unsigned int calibrationOffset;
             char ssid[64];
             char wifiPassword[64];
+            unsigned int defaultVref;
         };
 
     };

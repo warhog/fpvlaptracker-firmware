@@ -80,7 +80,7 @@ lap::LapDetector lapDetector(&storage, &rssi);
 comm::WifiComm wifiComm(&storage);
 radio::Rx5808 rx5808(PIN_SPI_CLOCK, PIN_SPI_DATA, PIN_SPI_SLAVE_SELECT, PIN_ANALOG_RSSI);
 BluetoothSerial btSerial;
-battery::BatteryMgr batteryMgr(PIN_ANALOG_BATTERY);
+battery::BatteryMgr batteryMgr(PIN_ANALOG_BATTERY, &storage);
 statemanagement::StateManager stateManager;
 comm::BtComm btComm(&btSerial, &storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager);
 unsigned long fastRssiTimeout = 0L;
@@ -124,10 +124,6 @@ void setup() {
 	led.off();
 
 	randomSeed(analogRead(PIN_ANALOG_BATTERY));
-	batteryMgr.detectCellsAndSetup();
-#ifdef DEBUG
-	Serial.printf("alarmVoltage: %f, shutdownVoltage: %f\n", batteryMgr.getAlarmVoltage(), batteryMgr.getShutdownVoltage());
-#endif
 
 #ifdef DEBUG
 	Serial.println(F("setting up ports"));
@@ -147,10 +143,18 @@ void setup() {
 	EEPROM.begin(512);
 	storage.load();
 
+#ifdef DEBUG
+	Serial.println(F("setup batterymgr"));
+#endif
+	batteryMgr.detectCellsAndSetup();
+#ifdef DEBUG
+	Serial.printf("alarmVoltage: %f, shutdownVoltage: %f\n", batteryMgr.getAlarmVoltage(), batteryMgr.getShutdownVoltage());
+#endif
+
 	if (webUpdateMode) {
 		// add delay to make it possible to measure the vref output voltage
 		// by the user
-		delay(2000);
+		delay(5000);
 		// running in webupdate mode
 #ifdef DEBUG
 		Serial.println(F("starting webupdate mode"));
