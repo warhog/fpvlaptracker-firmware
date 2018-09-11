@@ -178,16 +178,27 @@ void BtComm::processStoreConfig() {
 #endif
         this->sendBtMessageWithNewline(F("SETCONFIG: NOK"));
     } else {
+        bool reboot = false;
         this->_storage->setMinLapTime(root["minimumLapTime"]);
         this->_storage->setSsid(root["ssid"]);
         this->_storage->setWifiPassword(root["password"]);
+        if (this->_storage->getChannelIndex() != freq::Frequency::getChannelIndexForFrequency(root["frequency"])) {
+            reboot = true;
+        }
         this->_storage->setChannelIndex(freq::Frequency::getChannelIndexForFrequency(root["frequency"]));
         this->_storage->setTriggerThreshold(root["triggerThreshold"]);
         this->_storage->setTriggerThresholdCalibration(root["triggerThresholdCalibration"]);
         this->_storage->setCalibrationOffset(root["calibrationOffset"]);
+        if (this->_storage->getDefaultVref() != root["defaultVref"]) {
+            reboot = true;
+        }
         this->_storage->setDefaultVref(root["defaultVref"]);
         this->_storage->store();
-        this->sendBtMessageWithNewline(F("SETCONFIG: OK"));
+        String response = F("SETCONFIG: OK");
+        if (reboot) {
+            response += " reboot";
+        }
+        this->sendBtMessageWithNewline(response);
     }
 }
 
