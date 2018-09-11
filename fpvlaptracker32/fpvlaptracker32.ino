@@ -114,10 +114,7 @@ void setup() {
 	Serial.flush();
 #endif
 
-	// batteryMgr.enableVrefOutput();
-	// for(;;) {
-	// 	yield();
-	// }
+	batteryMgr.enableVrefOutput();
 
 	// blink led to show startup
 	for (int i = 0; i < 20; i++) {
@@ -151,6 +148,9 @@ void setup() {
 	storage.load();
 
 	if (webUpdateMode) {
+		// add delay to make it possible to measure the vref output voltage
+		// by the user
+		delay(2000);
 		// running in webupdate mode
 #ifdef DEBUG
 		Serial.println(F("starting webupdate mode"));
