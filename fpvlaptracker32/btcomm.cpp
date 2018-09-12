@@ -22,7 +22,9 @@ int BtComm::connect() {
     sprintf(strChipId, "%u", chipId);
     String chipString = strChipId;
     String name = "FLT" + chipString;
-    this->_btSerial->begin(name);
+    if (!this->_btSerial->begin(name)) {
+        return btErrorCode::INIT_FAILED;
+    }
 
 #ifdef DEBUG
     Serial.print(F("name command: "));
@@ -98,18 +100,12 @@ void BtComm::processIncommingMessage() {
         } else if (this->_serialString.length() >= 6 && this->_serialString.substring(0, 6) == "REBOOT") {
             // reboot the device
             ESP.restart();
-        } else if (this->_serialString.length() >= 9 && this->_serialString.substring(0, 9) == "GET state") {
-            // get the current state
-            this->sendGenericState("state", this->_state.c_str());
-        } else if (this->_serialString.length() >= 10 && this->_serialString.substring(0, 10) == "GET config") {
+        } else if (this->_serialString.length() >= 10 && this->_serialString.substring(0, 10) == "GET device") {
             // get the current config data
-            this->processGetConfig();
+            this->processGetDeviceData();
         } else if (this->_serialString.length() >= 11 && this->_serialString.substring(0, 11) == "PUT config ") {
             // store the given config data
             this->processStoreConfig();
-        } else if (this->_serialString.length() >= 15 && this->_serialString.substring(0, 15) == "GET runtimedata") {
-            // get runtime data
-            this->processGetRuntimeData();
         } else if (this->_serialString.length() >= 10 && this->_serialString.substring(0, 10) == "START scan") {
             // start channel scan
             this->_rx5808->startScan(this->_storage->getChannelIndex());
@@ -138,19 +134,12 @@ void BtComm::processIncommingMessage() {
     }
 }
 
-void BtComm::processGetRuntimeData() {
-    JsonObject& root = this->prepareJson();
-    root["type"] = "runtime";
-    root["triggerValue"] = this->_lapDetector->getTriggerValue();
-    this->sendJson(root);
-}
-
 /*---------------------------------------------------
- * received get config message
+ * received get device data message
  *-------------------------------------------------*/
-void BtComm::processGetConfig() {
+void BtComm::processGetDeviceData() {
     JsonObject& root = this->prepareJson();
-    root["type"] = "config";
+    root["type"] = "device";
     root["frequency"] = freq::Frequency::getFrequencyForChannelIndex(this->_storage->getChannelIndex());
     root["minimumLapTime"] = this->_storage->getMinLapTime();
     root["ssid"] = this->_storage->getSsid();
@@ -164,6 +153,8 @@ void BtComm::processGetConfig() {
     root["uptime"] = millis() / 1000;
     root["defaultVref"] = this->_storage->getDefaultVref();
     root["wifiState"] = this->_wifiComm->isConnected();
+    root["rssi"] = this->_rssi->getRssi();
+    root["loopTime"] = 0;
     this->sendJson(root);
 }
 
@@ -172,8 +163,8 @@ void BtComm::processGetConfig() {
  *-------------------------------------------------*/
 void BtComm::processStoreConfig() {
     // received config
-    DynamicJsonBuffer jsonBuffer(200);
-    JsonObject& root = jsonBuffer.parseObject(this->_serialString.substring(11));
+    this->_jsonBuffer.clear();
+    JsonObject& root = this->_jsonBuffer.parseObject(this->_serialString.substring(11));
     if (!root.success()) {
 #ifdef DEBUG
         Serial.println(F("failed to parse config"));

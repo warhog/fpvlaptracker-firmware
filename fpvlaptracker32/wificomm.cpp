@@ -39,7 +39,7 @@ int WifiComm::connect() {
 #endif
     		WiFi.begin(this->_storage->getSsid().c_str(), this->_storage->getWifiPassword().c_str());
             unsigned int wait = 0;
-            while (WiFi.status() != WL_CONNECTED && wait < 15000) {
+            while (WiFi.status() != WL_CONNECTED && wait < 5000) {
                 delay(500);
                 wait += 500;
 #ifdef DEBUG
@@ -122,6 +122,11 @@ void WifiComm::processIncommingMessage() {
             Serial.println(F("got request registration packet"));
 #endif
             this->reg();
+//         } else if (strncmp(incomingPacket, "requestData", 11) == 0) {
+// #ifdef DEBUG
+//             Serial.println(F("got request data packet"));
+// #endif
+//             this->sendData();
         }
     }
 }
@@ -159,3 +164,14 @@ void WifiComm::sendCalibrationDone() {
     msg += "}";
     this->sendUdpMessage(msg);    
 }
+
+// void WifiComm::sendData() {
+// #ifdef DEBUG 
+//     Serial.println(F("sending data message"));
+// #endif
+//     String msg = "{\"type\":\"calibrationdone\",\"chipid\":";
+//     msg += static_cast<unsigned long>(ESP.getEfuseMac());
+//     msg += "}";
+//     this->sendUdpMessage(msg);    
+
+// }

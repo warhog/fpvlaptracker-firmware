@@ -16,7 +16,7 @@
 
 namespace comm {
 
-    enum btErrorCode { OK = 0, NAME_COMMAND_FAILED = -1 };
+    enum btErrorCode { OK = 0, NAME_COMMAND_FAILED = -1, INIT_FAILED = -2 };
 
     class BtComm : public Comm {
     public:
@@ -39,9 +39,8 @@ namespace comm {
         void sendBtMessage(String msg);
         void sendBtMessage(String msg, boolean newLine);
         void sendBtMessageWithNewline(String msg);
-        void processGetConfig();
+        void processGetDeviceData();
         void processStoreConfig();
-        void processGetRuntimeData();
         BluetoothSerial *_btSerial;
         lap::Rssi *_rssi;
         radio::Rx5808 *_rx5808;

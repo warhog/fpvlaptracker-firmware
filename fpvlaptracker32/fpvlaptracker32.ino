@@ -37,6 +37,7 @@
  * fast blinking - connected mode
  * blinking 2 times - BT name command not OK
  * blinking 3 times - mdns not started
+ * blinking 4 times - BT init failed
  * blinking 9 times - shutdown voltage
  * blinking 10 times - internal failure
  * 
@@ -59,7 +60,7 @@
 #include "batterymgr.h"
 
 // debug mode flags
-//#define DEBUG
+#define DEBUG
 //#define MEASURE
 
 #define VERSION "FLT32-R1.0"
@@ -205,9 +206,17 @@ void setup() {
 #ifdef DEBUG
 		Serial.println(F("connecting wifi"));
 #endif
-		wifiComm.connect();
+		//wifiComm.connect();
 		if (wifiComm.isConnected()) {
+#ifdef DEBUG
+			Serial.println(F("wifi connected, starting node registration"));
+#endif
 			wifiComm.reg();
+#ifdef DEBUG
+			Serial.println(F("node registration done"));
+		} else {
+			Serial.println(F("wifi not connected"));
+#endif
 		}
 
 #ifdef DEBUG
@@ -221,9 +230,13 @@ void setup() {
 #endif
 			if  (bterr == comm::btErrorCode::NAME_COMMAND_FAILED) {
 				blinkError(2);
+			} else if  (bterr == comm::btErrorCode::INIT_FAILED) {
+				blinkError(4);
 			}
 		}
-
+#ifdef DEBUG
+		Serial.println(F("bluetooth connected"));
+#endif
 		// blink <cell number> times to show end of setup() and start of rssi offset detection
 		led.mode(ledio::modes::BLINK_SEQUENCE);
 		led.blinkSequence(batteryMgr.getCells(), 15, 250);
