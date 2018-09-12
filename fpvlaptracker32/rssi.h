@@ -2,41 +2,41 @@
 
 namespace lap {
 
-  class Rssi {
-  public:
-    Rssi(unsigned int pin);
-    void process();
+	class Rssi {
+	public:
+		Rssi(unsigned int pin);
+		void process();
 
-    unsigned int getRssi() {
-      return this->_currentRssiValue;
-    }
+		unsigned int getRssi() {
+			return this->_currentRssiValue;
+		}
 
-    unsigned int getRssiRaw() {
-      return this->_currentRssiRawValue;
-    }
+		unsigned int getRssiRaw() {
+			return this->_currentRssiRawValue;
+		}
 
-    unsigned int getRssiOffset() const {
-      return this->_rssiOffset;
-    }
+		unsigned int getRssiOffset() const {
+			return this->_rssiOffset;
+		}
 
-    void setRssiOffset(unsigned int rssiOffset) {
-      this->_rssiOffset = rssiOffset;
-      this->process();
-      this->_currentRssiValue = _currentRssiRawValue;
-    }
+		void setRssiOffset(unsigned int rssiOffset) {
+			this->_rssiOffset = rssiOffset;
+			this->process();
+			this->_currentRssiValue = _currentRssiRawValue;
+		}
 
-    void setFilterRatio(double ratio) {
-      this->_filterRatio = ratio;
-    }
+		void setFilterRatio(double ratio) {
+			this->_filterRatio = ratio;
+		}
 
-  private:
-    double _currentRssiSmoothed;
-    double _filterRatio;
-    unsigned int _currentRssiValue;
-    unsigned int _currentRssiRawValue;
-    unsigned int _rssiOffset;
-    unsigned long _lastRun;
-    unsigned int _pin;
-  };
+	private:
+		double _currentRssiSmoothed;
+		double _filterRatio;
+		unsigned int _currentRssiValue;
+		unsigned int _currentRssiRawValue;
+		unsigned int _rssiOffset;
+		unsigned long _lastRun;
+		unsigned int _pin;
+	};
 
 }
