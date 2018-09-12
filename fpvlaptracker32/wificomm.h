@@ -16,6 +16,7 @@ namespace comm {
         int connect();
         void processIncommingMessage();
         void sendUdpMessage(String msg);
+        void sendCalibrationDone();
 
     private:
         String getBroadcastIP();

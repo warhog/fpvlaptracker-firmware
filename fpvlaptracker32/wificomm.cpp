@@ -2,7 +2,7 @@
 
 using namespace comm;
 
-//#define DEBUG
+#define DEBUG
 const unsigned int UDP_PORT = 31337;
 
 WifiComm::WifiComm(util::Storage *storage) : Comm(storage), _wifiSsidFound(false) {
@@ -13,7 +13,7 @@ int WifiComm::connect() {
     this->_wifiSsidFound = false;
 	this->_connected = false;
 
-	int nrOfWifis = WiFi.scanNetworks();
+	int nrOfWifis = WiFi.scanNetworks(false, false, false, 1000);
 #ifdef DEBUG
 	Serial.print(nrOfWifis);
 	Serial.println(F(" network(s) found"));
@@ -37,7 +37,7 @@ int WifiComm::connect() {
 #endif
 		WiFi.begin(this->_storage->getSsid().c_str(), this->_storage->getWifiPassword().c_str());
 		unsigned int wait = 0;
-		while (WiFi.status() != WL_CONNECTED && wait < 15000) {
+		while (WiFi.status() != WL_CONNECTED && wait < 30000) {
 			delay(500);
 			wait += 500;
 #ifdef DEBUG
@@ -138,4 +138,14 @@ String WifiComm::getBroadcastIP() {
   String broadcastIP = localIP.substring(0, pos);
   broadcastIP += ".255";
   return broadcastIP;
+}
+
+void WifiComm::sendCalibrationDone() {
+#ifdef DEBUG 
+    Serial.println(F("sending register message"));
+#endif
+    String msg = "{\"type\":\"calibrationdone\",\"chipid\":";
+    msg += static_cast<unsigned long>(ESP.getEfuseMac());
+    msg += "}";
+    this->sendUdpMessage(msg);    
 }

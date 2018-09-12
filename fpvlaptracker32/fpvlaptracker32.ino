@@ -59,7 +59,7 @@
 #include "batterymgr.h"
 
 // debug mode flags
-//#define DEBUG
+#define DEBUG
 //#define MEASURE
 
 #define VERSION "FLT32-R1.0"
@@ -333,6 +333,9 @@ void loop() {
 #endif
 			if (btComm.isConnected()) {
 				btComm.sendCalibrationDone();
+			}
+			if (wifiComm.isConnected()) {
+				wifiComm.sendCalibrationDone();
 			}
 			setState(statemanagement::state_enum::RACE);
 			led.mode(ledio::modes::OFF);
