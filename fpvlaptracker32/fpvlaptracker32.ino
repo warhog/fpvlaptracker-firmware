@@ -82,7 +82,7 @@ radio::Rx5808 rx5808(PIN_SPI_CLOCK, PIN_SPI_DATA, PIN_SPI_SLAVE_SELECT, PIN_ANAL
 BluetoothSerial btSerial;
 battery::BatteryMgr batteryMgr(PIN_ANALOG_BATTERY, &storage);
 statemanagement::StateManager stateManager;
-comm::BtComm btComm(&btSerial, &storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager);
+comm::BtComm btComm(&btSerial, &storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager, &wifiComm);
 unsigned long fastRssiTimeout = 0L;
 bool webUpdateMode = false;
 WebUpdate webUpdate;

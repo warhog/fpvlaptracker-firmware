@@ -6,9 +6,10 @@ using namespace comm;
 
 BtComm::BtComm(BluetoothSerial *btSerial, util::Storage *storage, lap::Rssi *rssi, radio::Rx5808 *rx5808,
     lap::LapDetector *lapDetector, battery::BatteryMgr *batteryMgr, const char *version,
-    statemanagement::StateManager *stateManager) : Comm(storage), _serialGotLine(false),
+    statemanagement::StateManager *stateManager, comm::WifiComm *wifiComm) : Comm(storage), _serialGotLine(false),
     _serialString(false), _rssi(rssi), _rx5808(rx5808), _btSerial(btSerial), _lapDetector(lapDetector),
-    _jsonBuffer(300), _batteryMgr(batteryMgr), _version(version), _stateManager(stateManager) {
+    _jsonBuffer(400), _batteryMgr(batteryMgr), _version(version), _stateManager(stateManager),
+    _wifiComm(wifiComm) {
 
 }
 
@@ -162,6 +163,7 @@ void BtComm::processGetConfig() {
     root["voltage"] = this->_batteryMgr->getVoltage();
     root["uptime"] = millis() / 1000;
     root["defaultVref"] = this->_storage->getDefaultVref();
+    root["wifiState"] = this->_wifiComm->isConnected();
     this->sendJson(root);
 }
 

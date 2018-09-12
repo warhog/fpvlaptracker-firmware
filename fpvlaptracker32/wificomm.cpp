@@ -142,7 +142,7 @@ String WifiComm::getBroadcastIP() {
 
 void WifiComm::sendCalibrationDone() {
 #ifdef DEBUG 
-    Serial.println(F("sending register message"));
+    Serial.println(F("sending calibration done message"));
 #endif
     String msg = "{\"type\":\"calibrationdone\",\"chipid\":";
     msg += static_cast<unsigned long>(ESP.getEfuseMac());
