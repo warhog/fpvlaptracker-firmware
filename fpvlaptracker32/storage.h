@@ -72,6 +72,20 @@ namespace util {
             return this->_wifiPassword;
         }
 
+        void setFilterRatio(double filterRatio) {
+            this->_filterRatio = filterRatio;
+        }
+        double getFilterRatio() {
+            return this->_filterRatio;
+        }
+
+        void setFilterRatioCalibration(double filterRatioCalibration) {
+            this->_filterRatioCalibration = filterRatioCalibration;
+        }
+        double getFilterRatioCalibration() {
+            return this->_filterRatioCalibration;
+        }
+
     private:
         unsigned int _channelIndex;
         unsigned long _minLapTime;
@@ -81,6 +95,8 @@ namespace util {
         String _ssid;
         String _wifiPassword;
         unsigned int _defaultVref;
+        double _filterRatio;
+        double _filterRatioCalibration;
 
         struct StorageEepromStruct {
             char version[4];
@@ -92,6 +108,8 @@ namespace util {
             char ssid[64];
             char wifiPassword[64];
             unsigned int defaultVref;
+            double filterRatio;
+            double filterRatioCalibration;
         };
 
     };

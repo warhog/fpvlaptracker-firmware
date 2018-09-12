@@ -6,10 +6,10 @@ using namespace comm;
 
 BtComm::BtComm(BluetoothSerial *btSerial, util::Storage *storage, lap::Rssi *rssi, radio::Rx5808 *rx5808,
     lap::LapDetector *lapDetector, battery::BatteryMgr *batteryMgr, const char *version,
-    statemanagement::StateManager *stateManager, comm::WifiComm *wifiComm) : Comm(storage), _serialGotLine(false),
+    statemanagement::StateManager *stateManager, comm::WifiComm *wifiComm, unsigned long *loopTime) : Comm(storage), _serialGotLine(false),
     _serialString(false), _rssi(rssi), _rx5808(rx5808), _btSerial(btSerial), _lapDetector(lapDetector),
     _jsonBuffer(400), _batteryMgr(batteryMgr), _version(version), _stateManager(stateManager),
-    _wifiComm(wifiComm) {
+    _wifiComm(wifiComm), _loopTime(loopTime) {
 
 }
 
@@ -92,7 +92,7 @@ void BtComm::processIncommingMessage() {
             // get the version
             JsonObject& root = this->prepareJson();
             root["type"] = "version";
-            root["version"] = "FLT32-R1.0";
+            root["version"] = this->_version;
             this->sendJson(root);
         } else if (this->_serialString.length() >= 8 && this->_serialString.substring(0, 8) == "GET rssi") {
             // get the current rssi
@@ -154,7 +154,8 @@ void BtComm::processGetDeviceData() {
     root["defaultVref"] = this->_storage->getDefaultVref();
     root["wifiState"] = this->_wifiComm->isConnected();
     root["rssi"] = this->_rssi->getRssi();
-    root["loopTime"] = 0;
+    root["loopTime"] = *this->_loopTime;
+    
     this->sendJson(root);
 }
 

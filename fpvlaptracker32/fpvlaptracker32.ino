@@ -83,7 +83,9 @@ radio::Rx5808 rx5808(PIN_SPI_CLOCK, PIN_SPI_DATA, PIN_SPI_SLAVE_SELECT, PIN_ANAL
 BluetoothSerial btSerial;
 battery::BatteryMgr batteryMgr(PIN_ANALOG_BATTERY, &storage);
 statemanagement::StateManager stateManager;
-comm::BtComm btComm(&btSerial, &storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager, &wifiComm);
+unsigned long loopTime = 0L;
+unsigned long lastLoopTimeRun = 0L;
+comm::BtComm btComm(&btSerial, &storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager, &wifiComm, &loopTime);
 unsigned long fastRssiTimeout = 0L;
 bool webUpdateMode = false;
 WebUpdate webUpdate;
@@ -308,6 +310,7 @@ void loop() {
 #endif
 			setState(statemanagement::state_enum::CALIBRATION);
 			lapDetector.enableCalibrationMode();
+			rssi.setFilterRatio(storage.getFilterRatioCalibration());
 #ifdef DEBUG
 			Serial.println(F("switch to calibration mode"));
 #endif
@@ -350,6 +353,7 @@ void loop() {
 			if (wifiComm.isConnected()) {
 				wifiComm.sendCalibrationDone();
 			}
+			rssi.setFilterRatio(storage.getFilterRatio());
 			setState(statemanagement::state_enum::RACE);
 			led.mode(ledio::modes::OFF);
 		} else if (stateManager.isStateRace()) {
@@ -396,6 +400,9 @@ void loop() {
 			btComm.processIncommingMessage();
 		}
 	}
+
+	loopTime = micros() - lastLoopTimeRun;
+	lastLoopTimeRun = micros();
 }
 
 /*---------------------------------------------------

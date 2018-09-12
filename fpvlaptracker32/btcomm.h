@@ -20,7 +20,7 @@ namespace comm {
 
     class BtComm : public Comm {
     public:
-        BtComm(BluetoothSerial *btSerial, util::Storage *storage, lap::Rssi *rssi, radio::Rx5808 *rx5808, lap::LapDetector *lapDetector, battery::BatteryMgr *batteryMgr, const char *version, statemanagement::StateManager *stateManager, comm::WifiComm *wifiComm);
+        BtComm(BluetoothSerial *btSerial, util::Storage *storage, lap::Rssi *rssi, radio::Rx5808 *rx5808, lap::LapDetector *lapDetector, battery::BatteryMgr *batteryMgr, const char *version, statemanagement::StateManager *stateManager, comm::WifiComm *wifiComm, unsigned long *loopTime);
         void reg();
         void lap(unsigned long lapTime, unsigned int rssi);
         int connect();
@@ -53,6 +53,7 @@ namespace comm {
         const char *_version;
         statemanagement::StateManager *_stateManager;
         comm::WifiComm *_wifiComm;
+        unsigned long *_loopTime;
     };
 
 }

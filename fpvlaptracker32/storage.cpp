@@ -4,7 +4,7 @@ using namespace util;
 
 //#define DEBUG
 
-const char* CONFIG_VERSION = "01C";
+const char* CONFIG_VERSION = "01D";
 const unsigned int CONFIG_START = 32;
 
 #ifndef max
@@ -13,7 +13,8 @@ const unsigned int CONFIG_START = 32;
 
 // do also adjust values in lapdetector constructor if you want to change defaults
 Storage::Storage() : _channelIndex(0), _minLapTime(4000), _ssid("flt-base"), _wifiPassword("flt-base"),
-    _triggerThresholdCalibration(120), _triggerThreshold(40), _calibrationOffset(10), _defaultVref(1100) {
+    _triggerThresholdCalibration(120), _triggerThreshold(40), _calibrationOffset(10), _defaultVref(1100),
+    _filterRatio(0.1), _filterRatioCalibration(0.01) {
 }
 
 void Storage::load() {
@@ -33,6 +34,8 @@ void Storage::load() {
         this->_triggerThresholdCalibration = storage.triggerThresholdCalibration;
         this->_calibrationOffset = storage.calibrationOffset;
         this->_defaultVref = storage.defaultVref;
+        this->_filterRatio = storage.filterRatio;
+        this->_filterRatioCalibration = storage.filterRatioCalibration;
     } else {
 #ifdef DEBUG
         Serial.println(F("load default values"));
@@ -56,6 +59,8 @@ void Storage::store() {
     storage.triggerThresholdCalibration = this->_triggerThresholdCalibration;
     storage.calibrationOffset = this->_calibrationOffset;
     storage.defaultVref = this->_defaultVref;
+    storage.filterRatio = this->_filterRatio;
+    storage.filterRatioCalibration = this->_filterRatioCalibration;
 
     for (unsigned int t = 0; t < sizeof(storage); t++) {
         EEPROM.write(CONFIG_START + t, *((char*)&storage + t));
