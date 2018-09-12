@@ -2,7 +2,7 @@
 
 using namespace comm;
 
-#define DEBUG
+//#define DEBUG
 const unsigned int UDP_PORT = 31337;
 
 WifiComm::WifiComm(util::Storage *storage) : Comm(storage), _wifiSsidFound(false) {
