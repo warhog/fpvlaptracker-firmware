@@ -292,7 +292,7 @@ void loop() {
 			// do 200 rounds = 2 sec
 			for (unsigned int i = 0; i < 500; i++) {
 				rssi.process();
-				rssiRaw += rssi.getRssi();
+				rssiRaw += rssi.getRssiRaw();
 				led.run();
 				delay(10);
 			}
