@@ -155,7 +155,8 @@ void BtComm::processGetDeviceData() {
     root["wifiState"] = this->_wifiComm->isConnected();
     root["rssi"] = this->_rssi->getRssi();
     root["loopTime"] = *this->_loopTime;
-    
+    root["filterRatio"] = this->_storage->getFilterRatio();
+    root["filterRatioCalibration"] = this->_storage->getFilterRatioCalibration();
     this->sendJson(root);
 }
 
@@ -174,20 +175,50 @@ void BtComm::processStoreConfig() {
     } else {
         bool reboot = false;
         this->_storage->setMinLapTime(root["minimumLapTime"]);
+        
+        if (this->_storage->getSsid() != root["ssid"]) {
+            reboot = true;
+        }
         this->_storage->setSsid(root["ssid"]);
+
+        if (this->_storage->getWifiPassword() != root["password"]) {
+            reboot = true;
+        }
         this->_storage->setWifiPassword(root["password"]);
+
         if (this->_storage->getChannelIndex() != freq::Frequency::getChannelIndexForFrequency(root["frequency"])) {
             reboot = true;
         }
         this->_storage->setChannelIndex(freq::Frequency::getChannelIndexForFrequency(root["frequency"]));
+
+        if (this->_storage->getTriggerThreshold() != root["triggerThreshold"]) {
+            reboot = true;
+        }
         this->_storage->setTriggerThreshold(root["triggerThreshold"]);
+
+        if (this->_storage->getTriggerThresholdCalibration() != root["triggerThresholdCalibration"]) {
+            reboot = true;
+        }
         this->_storage->setTriggerThresholdCalibration(root["triggerThresholdCalibration"]);
+
         this->_storage->setCalibrationOffset(root["calibrationOffset"]);
+        
         if (this->_storage->getDefaultVref() != root["defaultVref"]) {
             reboot = true;
         }
         this->_storage->setDefaultVref(root["defaultVref"]);
+
+        this->_storage->setFilterRatio(root["filterRatio"]);
+        this->_storage->setFilterRatioCalibration(root["filterRatioCalibration"]);
+        if (this->_stateManager->isStateCalibration()) {
+            this->_rssi->setFilterRatio(root["filterRatioCalibration"]);
+        } else {
+            this->_rssi->setFilterRatio(root["filterRatio"]);
+        }
+
         this->_storage->store();
+        this->_lapDetector->init();
+        
         String response = F("SETCONFIG: OK");
         if (reboot) {
             response += " reboot";
