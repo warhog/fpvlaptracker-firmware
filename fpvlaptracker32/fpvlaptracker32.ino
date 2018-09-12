@@ -208,7 +208,7 @@ void setup() {
 #ifdef DEBUG
 		Serial.println(F("connecting wifi"));
 #endif
-		//wifiComm.connect();
+		wifiComm.connect();
 		if (wifiComm.isConnected()) {
 #ifdef DEBUG
 			Serial.println(F("wifi connected, starting node registration"));
