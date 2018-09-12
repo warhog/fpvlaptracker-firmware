@@ -31,41 +31,51 @@ int WifiComm::connect() {
 	}
 
 	if (this->_wifiSsidFound) {
+        unsigned int tries = 5;
+        while (tries > 0) {
 #ifdef DEBUG
-		Serial.print(F("wifi connecting to ssid "));
-		Serial.print(this->_storage->getSsid());
+            Serial.print(F("wifi connecting to ssid "));
+            Serial.print(this->_storage->getSsid());
 #endif
-		WiFi.begin(this->_storage->getSsid().c_str(), this->_storage->getWifiPassword().c_str());
-		unsigned int wait = 0;
-		while (WiFi.status() != WL_CONNECTED && wait < 30000) {
-			delay(500);
-			wait += 500;
+    		WiFi.begin(this->_storage->getSsid().c_str(), this->_storage->getWifiPassword().c_str());
+            unsigned int wait = 0;
+            while (WiFi.status() != WL_CONNECTED && wait < 15000) {
+                delay(500);
+                wait += 500;
 #ifdef DEBUG
-			Serial.print(F("."));
+    			Serial.print(F("."));
 #endif
-		}
-		if (WiFi.status() != WL_CONNECTED) {
-#ifdef DEBUG
-			Serial.println(F("cannot connect to ssid, switching to standalone mode"));
-#endif
-		} else if (WiFi.status() == WL_CONNECTED) {
-#ifdef DEBUG
-			Serial.println(F("connected"));
-#endif
-			this->_connected = true;
-
-            if (this->_connected) {
-#ifdef DEBUG
-                Serial.println(F("WiFi set up"));
-                Serial.print(F("IP address: "));
-                Serial.println(WiFi.localIP());
-                Serial.print(F("broadcast IP is "));
-                Serial.println(getBroadcastIP());
-                Serial.println(F("starting udp"));
-#endif
-                this->_udp.begin(UDP_PORT);
             }
-		}
+            tries--;
+            if (WiFi.status() != WL_CONNECTED) {
+                WiFi.disconnect();
+#ifdef DEBUG
+                if (tries == 0) {
+        			Serial.println(F("cannot connect to ssid, switching to standalone mode"));
+                } else {
+                    Serial.println(F("cannot connect to ssid, retrying"));
+                }
+#endif
+		    } else if (WiFi.status() == WL_CONNECTED) {
+#ifdef DEBUG
+    			Serial.println(F("connected"));
+#endif
+    			this->_connected = true;
+                tries = 0;
+            }
+
+        }
+        if (this->_connected) {
+#ifdef DEBUG
+            Serial.println(F("WiFi set up"));
+            Serial.print(F("IP address: "));
+            Serial.println(WiFi.localIP());
+            Serial.print(F("broadcast IP is "));
+            Serial.println(getBroadcastIP());
+            Serial.println(F("starting udp"));
+#endif
+            this->_udp.begin(UDP_PORT);
+        }
 #ifdef DEBUG
 	} else {
         Serial.println(F("wifi ssid not found"));
