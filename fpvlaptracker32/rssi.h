@@ -25,8 +25,13 @@ namespace lap {
       this->_currentRssiValue = _currentRssiRawValue;
     }
 
+    void setFilterRatio(double ratio) {
+      this->_filterRatio = ratio;
+    }
 
   private:
+    double _currentRssiSmoothed;
+    double _filterRatio;
     unsigned int _currentRssiValue;
     unsigned int _currentRssiRawValue;
     unsigned int _rssiOffset;
