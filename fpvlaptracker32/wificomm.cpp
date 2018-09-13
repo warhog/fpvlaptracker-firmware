@@ -151,15 +151,14 @@ void WifiComm::reg() {
 }
 
 /*---------------------------------------------------
- * build broadcast ip for current localIP (just replaces last group with 255
- * may be wrong on non trivial setups but for now it is good enough
+ * build broadcast ip for current localIP
  *-------------------------------------------------*/
 String WifiComm::getBroadcastIP() {
-  String localIP = WiFi.localIP().toString();
-  int pos = localIP.lastIndexOf('.');
-  String broadcastIP = localIP.substring(0, pos);
-  broadcastIP += ".255";
-  return broadcastIP;
+    uint32_t ip = (uint32_t)WiFi.localIP();
+    uint32_t netmask = (uint32_t)WiFi.subnetMask();
+    uint32_t broadcast = ip | (~netmask);
+    IPAddress broadcastAddress(broadcast);
+    return broadcastAddress.toString();
 }
 
 void WifiComm::sendCalibrationDone() {
