@@ -5,7 +5,10 @@ using namespace comm;
 //#define DEBUG
 const unsigned int UDP_PORT = 31337;
 
-WifiComm::WifiComm(util::Storage *storage) : Comm(storage), _wifiSsidFound(false) {
+WifiComm::WifiComm(util::Storage *storage, lap::Rssi *rssi, radio::Rx5808 *rx5808, lap::LapDetector *lapDetector,
+    battery::BatteryMgr *batteryMgr, const char *version, statemanagement::StateManager *stateManager,
+    unsigned long *loopTime) :
+    Comm(storage, rssi, rx5808, lapDetector, batteryMgr, version, stateManager, loopTime), _wifiSsidFound(false) {
 
 }
 
@@ -117,16 +120,20 @@ void WifiComm::processIncommingMessage() {
         if (len > 0) {
             incomingPacket[len] = 0;
         }
+#ifdef DEBUG
+        Serial.print(F("incomming packet: "));
+        // Serial.println(incomingPacket);
+#endif
         if (strncmp(incomingPacket, "requestRegistration", 19) == 0) {
 #ifdef DEBUG
             Serial.println(F("got request registration packet"));
 #endif
             this->reg();
-//         } else if (strncmp(incomingPacket, "requestData", 11) == 0) {
-// #ifdef DEBUG
-//             Serial.println(F("got request data packet"));
-// #endif
-//             this->sendData();
+        } else if (strncmp(incomingPacket, "requestData", 11) == 0) {
+#ifdef DEBUG
+            Serial.println(F("got request data packet"));
+#endif
+            this->sendData();
         }
     }
 }
@@ -165,13 +172,31 @@ void WifiComm::sendCalibrationDone() {
     this->sendUdpMessage(msg);    
 }
 
-// void WifiComm::sendData() {
-// #ifdef DEBUG 
-//     Serial.println(F("sending data message"));
-// #endif
-//     String msg = "{\"type\":\"calibrationdone\",\"chipid\":";
-//     msg += static_cast<unsigned long>(ESP.getEfuseMac());
-//     msg += "}";
-//     this->sendUdpMessage(msg);    
-
-// }
+void WifiComm::sendData() {
+#ifdef DEBUG 
+    Serial.println(F("sending data message"));
+#endif
+    unsigned long chipId = static_cast<unsigned long>(ESP.getEfuseMac());
+    DynamicJsonBuffer _jsonBuffer(400);
+    JsonObject& root = _jsonBuffer.createObject();
+    root["type"] = "devicedata";
+    root["chipid"] = chipId;
+    root["frequency"] = freq::Frequency::getFrequencyForChannelIndex(this->_storage->getChannelIndex());
+    root["minimumLapTime"] = this->_storage->getMinLapTime();
+    root["triggerThreshold"] = this->_storage->getTriggerThreshold();
+    root["triggerThresholdCalibration"] = this->_storage->getTriggerThresholdCalibration();
+    root["calibrationOffset"] = this->_storage->getCalibrationOffset();
+    root["state"] = this->_stateManager->toString(this->_stateManager->getState());
+    root["triggerValue"] = this->_lapDetector->getTriggerValue();
+    root["voltage"] = this->_batteryMgr->getVoltage();
+    root["uptime"] = millis() / 1000;
+    root["defaultVref"] = this->_storage->getDefaultVref();
+    root["rssi"] = this->_rssi->getRssi();
+    root["loopTime"] = *this->_loopTime;
+    root["filterRatio"] = this->_storage->getFilterRatio();
+    root["filterRatioCalibration"] = this->_storage->getFilterRatioCalibration();
+    String msg("");
+    root.printTo(msg);
+    _jsonBuffer.clear();
+    this->sendUdpMessage(msg);
+}

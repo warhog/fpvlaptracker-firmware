@@ -6,10 +6,9 @@ using namespace comm;
 
 BtComm::BtComm(BluetoothSerial *btSerial, util::Storage *storage, lap::Rssi *rssi, radio::Rx5808 *rx5808,
     lap::LapDetector *lapDetector, battery::BatteryMgr *batteryMgr, const char *version,
-    statemanagement::StateManager *stateManager, comm::WifiComm *wifiComm, unsigned long *loopTime) : Comm(storage), _serialGotLine(false),
-    _serialString(false), _rssi(rssi), _rx5808(rx5808), _btSerial(btSerial), _lapDetector(lapDetector),
-    _jsonBuffer(400), _batteryMgr(batteryMgr), _version(version), _stateManager(stateManager),
-    _wifiComm(wifiComm), _loopTime(loopTime) {
+    statemanagement::StateManager *stateManager, comm::WifiComm *wifiComm, unsigned long *loopTime) : 
+    Comm(storage, rssi, rx5808, lapDetector, batteryMgr, version, stateManager, loopTime), _serialGotLine(false),
+    _serialString(false), _btSerial(btSerial), _jsonBuffer(400), _wifiComm(wifiComm) {
 
 }
 
@@ -147,7 +146,7 @@ void BtComm::processGetDeviceData() {
     root["triggerThreshold"] = this->_storage->getTriggerThreshold();
     root["triggerThresholdCalibration"] = this->_storage->getTriggerThresholdCalibration();
     root["calibrationOffset"] = this->_storage->getCalibrationOffset();
-    root["state"] = this->_state;
+    root["state"] = this->_stateManager->toString(this->_stateManager->getState());
     root["triggerValue"] = this->_lapDetector->getTriggerValue();
     root["voltage"] = this->_batteryMgr->getVoltage();
     root["uptime"] = millis() / 1000;
@@ -225,10 +224,6 @@ void BtComm::processStoreConfig() {
         }
         this->sendBtMessageWithNewline(response);
     }
-}
-
-void BtComm::setState(String state) {
-    this->_state = state;
 }
 
 void BtComm::sendScanData(unsigned int frequency, unsigned int rssi) {

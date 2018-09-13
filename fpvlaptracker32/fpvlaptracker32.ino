@@ -60,7 +60,7 @@
 #include "batterymgr.h"
 
 // debug mode flags
-#define DEBUG
+//#define DEBUG
 //#define MEASURE
 
 #define VERSION "FLT32-R1.0"
@@ -78,23 +78,19 @@ lap::Rssi rssi(PIN_ANALOG_RSSI);
 ledio::LedControl led(PIN_LED);
 util::Storage storage;
 lap::LapDetector lapDetector(&storage, &rssi);
-comm::WifiComm wifiComm(&storage);
 radio::Rx5808 rx5808(PIN_SPI_CLOCK, PIN_SPI_DATA, PIN_SPI_SLAVE_SELECT, PIN_ANALOG_RSSI);
 BluetoothSerial btSerial;
 battery::BatteryMgr batteryMgr(PIN_ANALOG_BATTERY, &storage);
 statemanagement::StateManager stateManager;
 unsigned long loopTime = 0L;
 unsigned long lastLoopTimeRun = 0L;
+comm::WifiComm wifiComm(&storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager, &loopTime);
 comm::BtComm btComm(&btSerial, &storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager, &wifiComm, &loopTime);
 unsigned long fastRssiTimeout = 0L;
 bool webUpdateMode = false;
 WebUpdate webUpdate;
 bool lowVoltageSent = false;
 
-void setState(statemanagement::state_enum state) {
-	stateManager.setState(state);
-	btComm.setState(stateManager.toString(stateManager.getState()));
-}
 /*---------------------------------------------------
  * application setup
  *-------------------------------------------------*/
@@ -308,7 +304,7 @@ void loop() {
 			Serial.print(F("VAR: rssi_offset="));
 			Serial.println(rssiRaw);
 #endif
-			setState(statemanagement::state_enum::CALIBRATION);
+			stateManager.setState(statemanagement::state_enum::CALIBRATION);
 			lapDetector.enableCalibrationMode();
 			rssi.setFilterRatio(storage.getFilterRatioCalibration());
 #ifdef DEBUG
@@ -341,7 +337,7 @@ void loop() {
 #ifdef MEASURE
 				Serial.println(F("INFO: lap detected, calibration is done"));
 #endif
-				setState(statemanagement::state_enum::CALIBRATION_DONE);
+				stateManager.setState(statemanagement::state_enum::CALIBRATION_DONE);
 			}
 		} else if (stateManager.isStateCalibrationDone()) {
 #if defined(DEBUG) || defined(MEASURE)
@@ -354,7 +350,7 @@ void loop() {
 				wifiComm.sendCalibrationDone();
 			}
 			rssi.setFilterRatio(storage.getFilterRatio());
-			setState(statemanagement::state_enum::RACE);
+			stateManager.setState(statemanagement::state_enum::RACE);
 			led.mode(ledio::modes::OFF);
 		} else if (stateManager.isStateRace()) {
 #ifdef MEASURE

@@ -25,7 +25,6 @@ namespace comm {
         void lap(unsigned long lapTime, unsigned int rssi);
         int connect();
         void processIncommingMessage();
-        void setState(String state);
         void sendScanData(unsigned int frequency, unsigned int rssi);
         void sendFastRssiData(unsigned int rssi);
         void sendCalibrationDone();
@@ -42,18 +41,11 @@ namespace comm {
         void processGetDeviceData();
         void processStoreConfig();
         BluetoothSerial *_btSerial;
-        lap::Rssi *_rssi;
-        radio::Rx5808 *_rx5808;
-        lap::LapDetector *_lapDetector;
-        battery::BatteryMgr *_batteryMgr;
         bool _serialGotLine;
         String _serialString;
-        String _state;
         DynamicJsonBuffer _jsonBuffer;
         const char *_version;
-        statemanagement::StateManager *_stateManager;
         comm::WifiComm *_wifiComm;
-        unsigned long *_loopTime;
     };
 
 }
