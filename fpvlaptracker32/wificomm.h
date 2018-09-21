@@ -25,6 +25,7 @@ namespace comm {
         void sendUdpMessage(String msg);
         void sendCalibrationDone();
         void sendData();
+        void disconnect();
 
     private:
         String getBroadcastIP();

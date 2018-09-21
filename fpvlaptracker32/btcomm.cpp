@@ -98,6 +98,10 @@ void BtComm::processIncommingMessage() {
             this->sendFastRssiData(this->_rssi->getRssi());
         } else if (this->_serialString.length() >= 6 && this->_serialString.substring(0, 6) == "REBOOT") {
             // reboot the device
+            this->disconnect();
+            if (this->_wifiComm->isConnected()) {
+                this->_wifiComm->disconnect();
+            }
             ESP.restart();
         } else if (this->_serialString.length() >= 10 && this->_serialString.substring(0, 10) == "GET device") {
             // get the current config data
@@ -273,4 +277,8 @@ void BtComm::sendJson(JsonObject& root) {
 
 bool BtComm::hasClient() {
     return this->_btSerial->hasClient();
+}
+
+void BtComm::disconnect() {
+    this->_btSerial->end();
 }

@@ -199,3 +199,7 @@ void WifiComm::sendData() {
     _jsonBuffer.clear();
     this->sendUdpMessage(msg);
 }
+
+void WifiComm::disconnect() {
+    WiFi.disconnect();
+}

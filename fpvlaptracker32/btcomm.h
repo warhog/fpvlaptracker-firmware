@@ -31,6 +31,7 @@ namespace comm {
         void sendVoltageAlarm();
         void sendGenericState(const char* type, const char* state);
         bool hasClient();
+        void disconnect();
 
     private:
         void sendJson(JsonObject& root);

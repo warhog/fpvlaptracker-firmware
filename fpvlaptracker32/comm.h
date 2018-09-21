@@ -20,6 +20,7 @@ namespace comm {
         bool isConnected() const {
             return this->_connected;
         }
+        void disconnect();
     protected:
         util::Storage *_storage;
         lap::Rssi *_rssi;
