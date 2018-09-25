@@ -219,6 +219,11 @@ void BtComm::processStoreConfig() {
             this->_rssi->setFilterRatio(root["filterRatio"]);
         }
 
+        // allow setting the trigger value outside of calibration mode
+        if (!this->_lapDetector->isCalibrating() && root["triggerValue"] != this->_lapDetector->getTriggerValue()) {
+            this->_lapDetector->setTriggerValue(root["triggerValue"]);
+        }
+
         this->_storage->store();
         this->_lapDetector->init();
         

@@ -37,6 +37,10 @@ namespace lap {
             return this->_triggerValue;
         }
 
+        void setTriggerValue(int triggerValue) {
+            this->_triggerValue = triggerValue;
+        }
+
     private:
         util::Storage* _storage;
         Rssi* _rssi;
