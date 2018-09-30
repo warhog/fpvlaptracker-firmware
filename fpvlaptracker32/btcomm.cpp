@@ -9,7 +9,7 @@ BtComm::BtComm(BluetoothSerial *btSerial, util::Storage *storage, lap::Rssi *rss
     statemanagement::StateManager *stateManager, comm::WifiComm *wifiComm, unsigned long *loopTime) : 
     Comm(storage, rssi, rx5808, lapDetector, batteryMgr, version, stateManager, loopTime), _serialGotLine(false),
     _serialString(false), _btSerial(btSerial), _jsonBuffer(400), _wifiComm(wifiComm) {
-
+        this->_version = version;
 }
 
 int BtComm::connect() {
@@ -79,8 +79,7 @@ void BtComm::processIncommingMessage() {
     // process serial line
     if (this->_serialGotLine) {
 #ifdef DEBUG
-        Serial.print(F("processIncommingMessage(): "));
-        Serial.println(this->_serialString);
+        Serial.printf("processIncommingMessage(): %s\n", this->_serialString.c_str());
 #endif
         if (this->_serialString.substring(0, 1) == "0") {
             // sometimes on first connect there i a leading zero sent
@@ -98,6 +97,10 @@ void BtComm::processIncommingMessage() {
             this->sendFastRssiData(this->_rssi->getRssi());
         } else if (this->_serialString.length() >= 6 && this->_serialString.substring(0, 6) == "REBOOT") {
             // reboot the device
+#ifdef DEBUG
+            Serial.println(F("reboot device"));
+            Serial.flush();
+#endif
             this->disconnect();
             if (this->_wifiComm->isConnected()) {
                 this->_wifiComm->disconnect();
@@ -224,6 +227,9 @@ void BtComm::processStoreConfig() {
 
         // allow setting the trigger value outside of calibration mode
         if (!this->_lapDetector->isCalibrating() && root["triggerValue"] != this->_lapDetector->getTriggerValue()) {
+#ifdef DEBUG
+            Serial.printf("setting new trigger value: %d\n", root["triggerValue"]);
+#endif
             this->_lapDetector->setTriggerValue(root["triggerValue"]);
         }
 

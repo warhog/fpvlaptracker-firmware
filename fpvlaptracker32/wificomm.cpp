@@ -9,7 +9,7 @@ WifiComm::WifiComm(util::Storage *storage, lap::Rssi *rssi, radio::Rx5808 *rx580
     battery::BatteryMgr *batteryMgr, const char *version, statemanagement::StateManager *stateManager,
     unsigned long *loopTime) :
     Comm(storage, rssi, rx5808, lapDetector, batteryMgr, version, stateManager, loopTime), _wifiSsidFound(false) {
-
+        this->_version = version;
 }
 
 int WifiComm::connect() {
