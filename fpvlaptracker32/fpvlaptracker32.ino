@@ -235,7 +235,7 @@ void setup() {
 #ifdef DEBUG
 		Serial.println(F("bluetooth connected"));
 #endif
-		// blink <cell number> times to show end of setup() and start of rssi offset detection
+		// blink <cell number> times to show end of setup() and start of calibration
 		led.mode(ledio::modes::BLINK_SEQUENCE);
 		led.blinkSequence(batteryMgr.getCells(), 15, 250);
 	}
@@ -283,26 +283,6 @@ void loop() {
 		if (stateManager.isStateStartup()) {
 #if defined(DEBUG) || defined(MEASURE)
 			Serial.println(F("STATE: STARTUP"));
-#endif
-			// find the noise level
-			rssi.setRssiOffset(0);
-			unsigned long rssiRaw = 0L;
-			// do 200 rounds = 2 sec
-			for (unsigned int i = 0; i < 500; i++) {
-				rssi.process();
-				rssiRaw += rssi.getRssiRaw();
-				led.run();
-				delay(10);
-			}
-			rssiRaw /= 200;
-			rssi.setRssiOffset(static_cast<unsigned int>(rssiRaw));
-#ifdef DEBUG
-			Serial.print(F("rssi offset: "));
-			Serial.println(rssiRaw);
-#endif
-#ifdef MEASURE
-			Serial.print(F("VAR: rssi_offset="));
-			Serial.println(rssiRaw);
 #endif
 			stateManager.setState(statemanagement::state_enum::CALIBRATION);
 			lapDetector.enableCalibrationMode();

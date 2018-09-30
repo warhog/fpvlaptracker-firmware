@@ -176,6 +176,9 @@ void BtComm::processStoreConfig() {
 #endif
         this->sendBtMessageWithNewline(F("SETCONFIG: NOK"));
     } else {
+#ifdef DEBUG
+        Serial.printf("got config: %s\n", this->_serialString.substring(11).c_str());
+#endif
         bool reboot = false;
         this->_storage->setMinLapTime(root["minimumLapTime"]);
         

@@ -15,16 +15,6 @@ namespace lap {
 			return this->_currentRssiRawValue;
 		}
 
-		unsigned int getRssiOffset() const {
-			return this->_rssiOffset;
-		}
-
-		void setRssiOffset(unsigned int rssiOffset) {
-			this->_rssiOffset = rssiOffset;
-			this->process();
-			this->_currentRssiValue = _currentRssiRawValue;
-		}
-
 		void setFilterRatio(double ratio) {
 			this->_filterRatio = ratio;
 		}
@@ -34,7 +24,6 @@ namespace lap {
 		double _filterRatio;
 		unsigned int _currentRssiValue;
 		unsigned int _currentRssiRawValue;
-		unsigned int _rssiOffset;
 		unsigned long _lastRun;
 		unsigned int _pin;
 	};

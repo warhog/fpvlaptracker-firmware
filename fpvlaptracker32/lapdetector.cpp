@@ -8,7 +8,7 @@ using namespace lap;
 // do also adjust values in storage constructor if you want to change defaults
 LapDetector::LapDetector(util::Storage *storage, Rssi *rssi) : _storage(storage), _triggerValue(10), _currentLapStart(0),
     _lastLapTime(0), _rssiPeak(0), _rssiPeakTime(0), _calibrationMode(false), _calibrationOffset(10),
-	_reachedGate(false), _rssi(rssi), _triggerThreshold(40), _triggerThresholdCalibration(120), _lastLapRssi(0),
+	_reachedGate(false), _rssi(rssi), _triggerThreshold(60), _triggerThresholdCalibration(120), _lastLapRssi(0),
 	_lastLapEnd(0)
 	{
 
@@ -114,13 +114,7 @@ boolean LapDetector::process() {
 				Serial.println(lowerThreshold);
 #endif
 #ifdef DEBUG
-				Serial.print(F("leaving gate, "));
-				Serial.print(F("rssi: "));
-				Serial.print(this->_rssi->getRssi());
-				Serial.print(F(", triggerValue: "));
-				Serial.print(this->_triggerValue);
-				Serial.print(F(", lowerThreshold: "));
-				Serial.println(lowerThreshold);
+				Serial.printf("leaving gate, rssi: %d, triggerValue: %d, lowerThreshold: %d\n", this->_rssi->getRssi(), this->_triggerValue, lowerThreshold);
 #endif
 				this->_reachedGate = false;
     			this->_lastLapTime = this->_rssiPeakTime - this->_currentLapStart;
