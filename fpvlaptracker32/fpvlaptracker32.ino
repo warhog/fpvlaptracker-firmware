@@ -58,6 +58,7 @@
 #include "statemanager.h"
 #include "webupdate.h"
 #include "batterymgr.h"
+#include "wifiwebserver.h"
 
 // debug mode flags
 //#define DEBUG
@@ -84,6 +85,7 @@ battery::BatteryMgr batteryMgr(PIN_ANALOG_BATTERY, &storage);
 statemanagement::StateManager stateManager;
 unsigned long loopTime = 0L;
 unsigned long lastLoopTimeRun = 0L;
+comm::WifiWebServer wifiWebServer(&storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager);
 comm::WifiComm wifiComm(&storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager, &loopTime);
 comm::BtComm btComm(&btSerial, &storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager, &wifiComm, &loopTime);
 unsigned long fastRssiTimeout = 0L;
@@ -210,6 +212,7 @@ void setup() {
 			Serial.println(F("wifi connected, starting node registration"));
 #endif
 			wifiComm.reg();
+			wifiWebServer.begin();
 #ifdef DEBUG
 			Serial.println(F("node registration done"));
 		} else {
@@ -217,24 +220,26 @@ void setup() {
 #endif
 		}
 
+		if (!wifiComm.isConnected()) {
 #ifdef DEBUG
-		Serial.println(F("connecting bluetooth"));
+			Serial.println(F("connecting bluetooth"));
 #endif
-		int bterr = btComm.connect();
-		if (bterr < 0) {
+			int bterr = btComm.connect();
+			if (bterr < 0) {
 #ifdef DEBUG
-			Serial.print(F("bt module error: "));
-			Serial.println(bterr);
+				Serial.print(F("bt module error: "));
+				Serial.println(bterr);
 #endif
-			if  (bterr == comm::btErrorCode::NAME_COMMAND_FAILED) {
-				blinkError(2);
-			} else if  (bterr == comm::btErrorCode::INIT_FAILED) {
-				blinkError(4);
+				if  (bterr == comm::btErrorCode::NAME_COMMAND_FAILED) {
+					blinkError(2);
+				} else if  (bterr == comm::btErrorCode::INIT_FAILED) {
+					blinkError(4);
+				}
 			}
-		}
 #ifdef DEBUG
-		Serial.println(F("bluetooth connected"));
+			Serial.println(F("bluetooth connected"));
 #endif
+		}
 		// blink <cell number> times to show end of setup() and start of calibration
 		led.mode(ledio::modes::BLINK_SEQUENCE);
 		led.blinkSequence(batteryMgr.getCells(), 15, 250);
@@ -374,6 +379,10 @@ void loop() {
 
 		if (btComm.isConnected()) {
 			btComm.processIncommingMessage();
+		}
+
+		if (wifiWebServer.isConnected()) {
+			wifiWebServer.handle();
 		}
 	}
 
