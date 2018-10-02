@@ -85,7 +85,7 @@ battery::BatteryMgr batteryMgr(PIN_ANALOG_BATTERY, &storage);
 statemanagement::StateManager stateManager;
 unsigned long loopTime = 0L;
 unsigned long lastLoopTimeRun = 0L;
-comm::WifiWebServer wifiWebServer(&storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager);
+comm::WifiWebServer wifiWebServer(&storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager, &loopTime);
 comm::WifiComm wifiComm(&storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager, &loopTime);
 comm::BtComm btComm(&btSerial, &storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager, &wifiComm, &loopTime);
 unsigned long fastRssiTimeout = 0L;

@@ -16,9 +16,10 @@ namespace comm {
     class WifiWebServer {
         public:
             WifiWebServer(util::Storage *storage, lap::Rssi *rssi, radio::Rx5808 *rx5808, lap::LapDetector *lapDetector,
-                battery::BatteryMgr *batteryMgr, const char *version, statemanagement::StateManager *stateManager) :
+                battery::BatteryMgr *batteryMgr, const char *version, statemanagement::StateManager *stateManager,
+                unsigned long *loopTime) :
                 _storage(storage), _rssi(rssi), _rx5808(rx5808), _lapDetector(lapDetector), _batteryMgr(batteryMgr),
-                _version(version), _stateManager(stateManager) {}
+                _version(version), _stateManager(stateManager), _loopTime(loopTime) {}
             void begin();
             void handle();
             bool isConnected() {
@@ -38,5 +39,6 @@ namespace comm {
             char *_serverIndex = "<style>body { font-family: Arial; }</style><h1>fpvlaptracker32 webserver</h1>current version: %VERSION%<br /><br />";
             const char *_version;
             bool _connected;
+            unsigned long *_loopTime;
     };
 }

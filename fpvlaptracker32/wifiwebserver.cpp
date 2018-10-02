@@ -66,6 +66,7 @@ void WifiWebServer::begin() {
         root["filterRatio"] = this->_storage->getFilterRatio();
         root["filterRatioCalibration"] = this->_storage->getFilterRatioCalibration();
         root["version"] = this->_version;
+        root["loopTime"] = *this->_loopTime;
         this->sendJson(root);
     });
 
