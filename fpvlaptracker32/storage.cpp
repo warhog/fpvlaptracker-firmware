@@ -4,7 +4,7 @@ using namespace util;
 
 //#define DEBUG
 
-const char* CONFIG_VERSION = "01D";
+const char* CONFIG_VERSION = "01E";
 const unsigned int CONFIG_START = 32;
 
 #ifndef max

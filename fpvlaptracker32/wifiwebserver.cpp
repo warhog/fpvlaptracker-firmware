@@ -1,6 +1,6 @@
 #include "wifiwebserver.h"
 
-//#define DEBUG
+#define DEBUG
 
 using namespace comm;
 
@@ -49,6 +49,12 @@ void WifiWebServer::begin() {
         this->sendJson(root);
     });
 
+    this->_server.on("/reboot", HTTP_GET, [&]() {
+        this->_server.sendHeader("Connection", "close");
+        this->_server.send(200, "text/html", "OK");
+        ESP.restart();
+    });
+
     this->_server.on("/devicedata", HTTP_GET, [&]() {
         this->_server.sendHeader("Connection", "close");
         JsonObject& root = this->prepareJson();
@@ -72,40 +78,73 @@ void WifiWebServer::begin() {
 
     this->_server.on("/devicedata", HTTP_POST, [&]() {
         this->_server.sendHeader("Connection", "close");
-        // this->_server.send(200, "text/html", temp);
-    }, [&]() {
-        
+        if (this->_server.args() > 0) {
+            this->_jsonBuffer.clear();
+            JsonObject& root = this->_jsonBuffer.parseObject(this->_server.arg(0));
+            if (!root.success()) {
+#ifdef DEBUG
+                Serial.println(F("failed to parse config"));
+#endif
+                this->_server.send(500, "text/html", "failed to parse config");
+            } else {
+#ifdef DEBUG
+                Serial.printf("got config: %s\n", this->_server.arg(0).c_str());
+#endif
+                bool reboot = false;
+                this->_storage->setMinLapTime(root["minimumLapTime"]);
+
+                if (this->_storage->getChannelIndex() != freq::Frequency::getChannelIndexForFrequency(root["frequency"])) {
+                    reboot = true;
+                }
+                this->_storage->setChannelIndex(freq::Frequency::getChannelIndexForFrequency(root["frequency"]));
+
+                if (this->_storage->getTriggerThreshold() != root["triggerThreshold"]) {
+                    reboot = true;
+                }
+                this->_storage->setTriggerThreshold(root["triggerThreshold"]);
+
+                if (this->_storage->getTriggerThresholdCalibration() != root["triggerThresholdCalibration"]) {
+                    reboot = true;
+                }
+                this->_storage->setTriggerThresholdCalibration(root["triggerThresholdCalibration"]);
+
+                this->_storage->setCalibrationOffset(root["calibrationOffset"]);
+                
+                if (this->_storage->getDefaultVref() != root["defaultVref"]) {
+                    reboot = true;
+                }
+                this->_storage->setDefaultVref(root["defaultVref"]);
+
+                this->_storage->setFilterRatio(root["filterRatio"]);
+                this->_storage->setFilterRatioCalibration(root["filterRatioCalibration"]);
+                if (this->_stateManager->isStateCalibration()) {
+                    this->_rssi->setFilterRatio(root["filterRatioCalibration"]);
+                } else {
+                    this->_rssi->setFilterRatio(root["filterRatio"]);
+                }
+
+                // allow setting the trigger value outside of calibration mode
+                if (!this->_lapDetector->isCalibrating() && root["triggerValue"] != this->_lapDetector->getTriggerValue()) {
+#ifdef DEBUG
+                    Serial.printf("setting new trigger value: %d\n", root["triggerValue"]);
+#endif
+                    this->_lapDetector->setTriggerValue(root["triggerValue"]);
+                }
+
+                this->_storage->store();
+                this->_lapDetector->init();
+                
+                String response = F("OK");
+                if (reboot) {
+                    response += " reboot";
+                }
+                this->_server.send(200, "text/html", response);
+            }
+        } else {
+            this->_server.sendHeader("Connection", "close");
+            this->_server.send(500, "text/html", "no arguments");
+        }
     });
-
-//       server.on("/edit", HTTP_POST, []() {
-//     server.send(200, "text/plain", "");
-//   }, handleFileUpload);
-
-// void handleFileUpload() {
-//   if (server.uri() != "/edit") {
-//     return;
-//   }
-//   HTTPUpload& upload = server.upload();
-//   if (upload.status == UPLOAD_FILE_START) {
-//     String filename = upload.filename;
-//     if (!filename.startsWith("/")) {
-//       filename = "/" + filename;
-//     }
-//     DBG_OUTPUT_PORT.print("handleFileUpload Name: "); DBG_OUTPUT_PORT.println(filename);
-//     fsUploadFile = SPIFFS.open(filename, "w");
-//     filename = String();
-//   } else if (upload.status == UPLOAD_FILE_WRITE) {
-//     //DBG_OUTPUT_PORT.print("handleFileUpload Data: "); DBG_OUTPUT_PORT.println(upload.currentSize);
-//     if (fsUploadFile) {
-//       fsUploadFile.write(upload.buf, upload.currentSize);
-//     }
-//   } else if (upload.status == UPLOAD_FILE_END) {
-//     if (fsUploadFile) {
-//       fsUploadFile.close();
-//     }
-//     DBG_OUTPUT_PORT.print("handleFileUpload Size: "); DBG_OUTPUT_PORT.println(upload.totalSize);
-//   }
-// }
 
     this->_server.begin();
     this->_connected = true;

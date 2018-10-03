@@ -32,7 +32,8 @@
 			"vector": "cpp",
 			"slist": "cpp",
 			"initializer_list": "cpp",
-			"bitset": "cpp"
+			"bitset": "cpp",
+			"complex": "cpp"
 		}
 	}
 }

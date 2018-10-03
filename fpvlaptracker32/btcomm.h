@@ -24,7 +24,7 @@ namespace comm {
         void reg();
         void lap(unsigned long lapTime, unsigned int rssi);
         int connect();
-        void processIncommingMessage();
+        void processIncomingMessage();
         void sendScanData(unsigned int frequency, unsigned int rssi);
         void sendFastRssiData(unsigned int rssi);
         void sendCalibrationDone();

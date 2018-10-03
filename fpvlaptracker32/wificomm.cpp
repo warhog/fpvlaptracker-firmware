@@ -112,7 +112,7 @@ void WifiComm::lap(unsigned long lapTime, unsigned int rssi) {
     this->sendUdpMessage(msg);
 }
 
-void WifiComm::processIncommingMessage() {
+void WifiComm::processIncomingMessage() {
     int packetSize = this->_udp.parsePacket();
     if (packetSize) {
         char incomingPacket[255];
@@ -121,8 +121,7 @@ void WifiComm::processIncommingMessage() {
             incomingPacket[len] = 0;
         }
 #ifdef DEBUG
-        Serial.print(F("incomming packet: "));
-        // Serial.println(incomingPacket);
+        Serial.printf("incoming packet: %s\n", incomingPacket);
 #endif
         if (strncmp(incomingPacket, "requestRegistration", 19) == 0) {
 #ifdef DEBUG

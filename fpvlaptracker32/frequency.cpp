@@ -18,13 +18,22 @@ unsigned int Frequency::getChannelIndexForFrequency(unsigned int frequency) {
 }
 
 unsigned int Frequency::getFrequencyForChannelIndex(unsigned int channelIndex) {
+    if (channelIndex >= (NR_OF_FREQUENCIES - 1)) {
+        return pgm_read_word_near(channelFreqTable + 0);
+    }
     return pgm_read_word_near(channelFreqTable + channelIndex);
 }
 
 String Frequency::getChannelNameForChannelIndex(unsigned int channelIndex) {
-     return channelNames[channelIndex];
+    if (channelIndex >= (NR_OF_FREQUENCIES - 1)) {
+        return channelNames[0];
+    }
+    return channelNames[channelIndex];
 }
 
 unsigned int Frequency::getSPIFrequencyForChannelIndex(unsigned int channelIndex) {
+    if (channelIndex >= (NR_OF_FREQUENCIES - 1)) {
+        return pgm_read_word_near(channelTable + 0);
+    }
     return pgm_read_word_near(channelTable + channelIndex);
 }

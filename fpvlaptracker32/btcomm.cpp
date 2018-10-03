@@ -66,7 +66,7 @@ void BtComm::sendBtMessage(String msg, boolean newLine) {
 /*---------------------------------------------------
  * event handler for incoming serial events (hc-06)
  *-------------------------------------------------*/
-void BtComm::processIncommingMessage() {
+void BtComm::processIncomingMessage() {
     // process serial data
     while (this->_btSerial->available()) {
         char c = (char)this->_btSerial->read();

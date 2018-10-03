@@ -21,7 +21,7 @@ namespace comm {
         void reg();
         void lap(unsigned long lapTime, unsigned int rssi);
         int connect();
-        void processIncommingMessage();
+        void processIncomingMessage();
         void sendUdpMessage(String msg);
         void sendCalibrationDone();
         void sendData();

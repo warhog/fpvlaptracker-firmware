@@ -61,7 +61,7 @@
 #include "wifiwebserver.h"
 
 // debug mode flags
-//#define DEBUG
+#define DEBUG
 //#define MEASURE
 
 #define VERSION "FLT32-R1.0"
@@ -374,11 +374,11 @@ void loop() {
 
 		// if we are in network mode, process udp
 		if (wifiComm.isConnected()) {
-			wifiComm.processIncommingMessage();
+			wifiComm.processIncomingMessage();
 		}
 
 		if (btComm.isConnected()) {
-			btComm.processIncommingMessage();
+			btComm.processIncomingMessage();
 		}
 
 		if (wifiWebServer.isConnected()) {
