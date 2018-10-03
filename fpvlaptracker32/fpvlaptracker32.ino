@@ -61,7 +61,7 @@
 #include "wifiwebserver.h"
 
 // debug mode flags
-#define DEBUG
+//#define DEBUG
 //#define MEASURE
 
 #define VERSION "FLT32-R1.0"
