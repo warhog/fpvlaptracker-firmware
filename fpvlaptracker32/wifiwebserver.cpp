@@ -91,44 +91,62 @@ void WifiWebServer::begin() {
                 Serial.printf("got config: %s\n", this->_server.arg(0).c_str());
 #endif
                 bool reboot = false;
-                this->_storage->setMinLapTime(root["minimumLapTime"]);
-
-                if (this->_storage->getChannelIndex() != freq::Frequency::getChannelIndexForFrequency(root["frequency"])) {
-                    reboot = true;
+                if (root["minimumLapTime"] > 1000 && root["minimumLapTime"] < 60000) {
+                    this->_storage->setMinLapTime(root["minimumLapTime"]);
                 }
-                this->_storage->setChannelIndex(freq::Frequency::getChannelIndexForFrequency(root["frequency"]));
 
-                if (this->_storage->getTriggerThreshold() != root["triggerThreshold"]) {
-                    reboot = true;
+                if (root["frequency"] >= 5325 && root["frequency"] <= 5945) {
+                    if (this->_storage->getChannelIndex() != freq::Frequency::getChannelIndexForFrequency(root["frequency"])) {
+                        reboot = true;
+                    }
+                    this->_storage->setChannelIndex(freq::Frequency::getChannelIndexForFrequency(root["frequency"]));
                 }
-                this->_storage->setTriggerThreshold(root["triggerThreshold"]);
 
-                if (this->_storage->getTriggerThresholdCalibration() != root["triggerThresholdCalibration"]) {
-                    reboot = true;
+                if (root["triggerThreshold"] > 10 && root["triggerThreshold"] < 1024) {
+                    if (this->_storage->getTriggerThreshold() != root["triggerThreshold"]) {
+                        reboot = true;
+                    }
+                    this->_storage->setTriggerThreshold(root["triggerThreshold"]);
                 }
-                this->_storage->setTriggerThresholdCalibration(root["triggerThresholdCalibration"]);
 
-                this->_storage->setCalibrationOffset(root["calibrationOffset"]);
+                if (root["triggerThresholdCalibration"] > 10 && root["triggerThresholdCalibration"] < 1024) {
+                    if (this->_storage->getTriggerThresholdCalibration() != root["triggerThresholdCalibration"]) {
+                        reboot = true;
+                    }
+                    this->_storage->setTriggerThresholdCalibration(root["triggerThresholdCalibration"]);
+                }
+
+                if (root["calibrationOffset"] > 1 && root["calibrationOffset"] < 256) {
+                    this->_storage->setCalibrationOffset(root["calibrationOffset"]);
+                }
                 
-                if (this->_storage->getDefaultVref() != root["defaultVref"]) {
-                    reboot = true;
+                if (root["defaultVref"] > 999 && root["defaultVref"] < 1200) {
+                    if (this->_storage->getDefaultVref() != root["defaultVref"]) {
+                        reboot = true;
+                    }
+                    this->_storage->setDefaultVref(root["defaultVref"]);
                 }
-                this->_storage->setDefaultVref(root["defaultVref"]);
 
-                this->_storage->setFilterRatio(root["filterRatio"]);
-                this->_storage->setFilterRatioCalibration(root["filterRatioCalibration"]);
+                if (root["filterRatio"] > 0 && root["filterRatio"] < 1) {
+                    this->_storage->setFilterRatio(root["filterRatio"]);
+                }
+                if (root["filterRatioCalibration"] > 0 && root["filterRatioCalibration"] < 1) {
+                    this->_storage->setFilterRatioCalibration(root["filterRatioCalibration"]);
+                }
                 if (this->_stateManager->isStateCalibration()) {
                     this->_rssi->setFilterRatio(root["filterRatioCalibration"]);
                 } else {
                     this->_rssi->setFilterRatio(root["filterRatio"]);
                 }
 
-                // allow setting the trigger value outside of calibration mode
-                if (!this->_lapDetector->isCalibrating() && root["triggerValue"] != this->_lapDetector->getTriggerValue()) {
+                if (root["triggerValue"] > 10 && root["triggerValue"] < 1024) {
+                    // allow setting the trigger value outside of calibration mode
+                    if (!this->_lapDetector->isCalibrating() && root["triggerValue"] != this->_lapDetector->getTriggerValue()) {
 #ifdef DEBUG
-                    Serial.printf("setting new trigger value: %d\n", root["triggerValue"]);
+                        Serial.printf("setting new trigger value: %d\n", root["triggerValue"]);
 #endif
-                    this->_lapDetector->setTriggerValue(root["triggerValue"]);
+                        this->_lapDetector->setTriggerValue(root["triggerValue"]);
+                    }
                 }
 
                 this->_storage->store();
