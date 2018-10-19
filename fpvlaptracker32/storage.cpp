@@ -18,6 +18,19 @@ Storage::Storage() : _channelIndex(0), _minLapTime(4000), _ssid("flt-base"), _wi
     _filterRatio(0.05), _filterRatioCalibration(0.05) {
 }
 
+void Storage::loadFactoryDefaults() {
+    this->_channelIndex = 0;
+    this->_minLapTime = 4000;
+    this->_ssid = "flt-base";
+    this->_wifiPassword = "flt-base";
+    this->_triggerThreshold = 60;
+    this->_triggerThresholdCalibration = 120;
+    this->_calibrationOffset = 10;
+    this->_filterRatio = 0.05;
+    this->_filterRatioCalibration = 0.05;
+    // skip default vref
+}
+
 void Storage::load() {
     if (EEPROM.read(CONFIG_START + 0) == CONFIG_VERSION[0] && EEPROM.read(CONFIG_START + 1) == CONFIG_VERSION[1] && EEPROM.read(CONFIG_START + 2) == CONFIG_VERSION[2]) {
 #ifdef DEBUG

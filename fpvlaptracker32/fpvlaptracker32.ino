@@ -90,7 +90,7 @@ comm::WifiComm wifiComm(&storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VER
 comm::BtComm btComm(&btSerial, &storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager, &wifiComm, &loopTime);
 unsigned long fastRssiTimeout = 0L;
 bool webUpdateMode = false;
-WebUpdate webUpdate;
+WebUpdate webUpdate(&storage);
 bool lowVoltageSent = false;
 
 /*---------------------------------------------------

@@ -25,8 +25,21 @@ void WebUpdate::begin() {
         this->_server.sendHeader("Connection", "close");
         String temp(this->_serverIndex);
         temp.replace("%VERSION%", this->_version);
+        uint64_t chipId = ESP.getEfuseMac();
+        char strChipId[15] = { 0 };
+        sprintf(strChipId, "%u", chipId);
+        String chipString = strChipId;
+        temp.replace("%CHIPID%", chipString);
         this->_server.send(200, "text/html", temp);
     });
+
+    this->_server.on("/factorydefaults", HTTP_GET, [&]() {
+        this->_server.sendHeader("Connection", "close");
+        this->_storage->loadFactoryDefaults();
+        this->_storage->store();
+        this->_server.send(200, "text/html", "factory defaults loaded");
+    });
+
     this->_server.on("/update", HTTP_POST, [&]() {
         this->_server.sendHeader("Connection", "close");
         this->_server.send(200, "text/html", (Update.hasError()) ? this->_failedResponse : this->_successResponse);

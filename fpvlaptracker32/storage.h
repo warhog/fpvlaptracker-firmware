@@ -10,6 +10,7 @@ namespace util {
         Storage();
         void load();
         void store();
+        void loadFactoryDefaults();
         void setChannelIndex(unsigned int channelIndex) {
             this->_channelIndex = channelIndex;
         }
