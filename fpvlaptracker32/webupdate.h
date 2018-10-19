@@ -9,7 +9,7 @@
 class WebUpdate {
 public:
     WebUpdate(String version, util::Storage *storage) : _server(80), _version(version), _storage(storage) {};
-    WebUpdate(util::Storage *storage) : _server(80), _version("0") {};
+    WebUpdate(util::Storage *storage) : _server(80), _version("0"), _storage(storage) {};
     void begin();
     void run();
     void setVersion(String version) {
