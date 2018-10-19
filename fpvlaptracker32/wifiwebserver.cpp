@@ -127,10 +127,10 @@ void WifiWebServer::begin() {
                     this->_storage->setDefaultVref(root["defaultVref"]);
                 }
 
-                if (root["filterRatio"] > 0 && root["filterRatio"] < 1) {
+                if (root["filterRatio"] > 0.0 && root["filterRatio"] < 1.0) {
                     this->_storage->setFilterRatio(root["filterRatio"]);
                 }
-                if (root["filterRatioCalibration"] > 0 && root["filterRatioCalibration"] < 1) {
+                if (root["filterRatioCalibration"] > 0.0 && root["filterRatioCalibration"] < 1.0) {
                     this->_storage->setFilterRatioCalibration(root["filterRatioCalibration"]);
                 }
                 if (this->_stateManager->isStateCalibration()) {
