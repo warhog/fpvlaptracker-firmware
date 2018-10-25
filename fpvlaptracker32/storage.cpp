@@ -15,7 +15,7 @@ const unsigned int CONFIG_START = 32;
 // also think of changing the default values in the app
 Storage::Storage() : _channelIndex(0), _minLapTime(4000), _ssid("flt-base"), _wifiPassword("flt-base"),
     _triggerThresholdCalibration(120), _triggerThreshold(60), _calibrationOffset(10), _defaultVref(1100),
-    _filterRatio(0.05), _filterRatioCalibration(0.05) {
+    _filterRatio(0.05), _filterRatioCalibration(0.005) {
 }
 
 void Storage::loadFactoryDefaults() {
@@ -27,7 +27,7 @@ void Storage::loadFactoryDefaults() {
     this->_triggerThresholdCalibration = 120;
     this->_calibrationOffset = 10;
     this->_filterRatio = 0.05;
-    this->_filterRatioCalibration = 0.05;
+    this->_filterRatioCalibration = 0.005;
     // skip default vref
 }
 
