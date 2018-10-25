@@ -279,6 +279,10 @@ void loop() {
 		rssi.setFilterRatio(storage.getFilterRatio());
 		stateManager.update(statemanagement::state_enum::RACE);
 		led.mode(ledio::modes::OFF);
+		if (btComm.isConnected()) {
+			led.blinkSequence(UINT_MAX, 125, 5000);
+			led.mode(ledio::modes::BLINK_SEQUENCE);
+		}
 	} else if (stateManager.isStateRace()) {
 #ifdef MEASURE
 		Serial.println(F("STATE: RACE"));
