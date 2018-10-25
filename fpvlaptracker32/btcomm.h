@@ -16,7 +16,7 @@
 
 namespace comm {
 
-    enum btErrorCode { OK = 0, NAME_COMMAND_FAILED = -1, INIT_FAILED = -2 };
+    enum btErrorCode { OK = 0, INIT_FAILED = -1 };
 
     class BtComm : public Comm {
     public:

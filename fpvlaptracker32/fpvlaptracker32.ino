@@ -1,6 +1,6 @@
 /*
  * fpvlaptracker32 firmware
- * fpv lap tracking software that uses rx5808 to keep track of the fpv video signals
+ * fpv lap tracking software that uses rx5808 and esp32 to keep track of the fpv video signals
  * rssi for lap detection
  * 
  * 
@@ -35,9 +35,8 @@
  * blink codes:
  * slow blinking - standalone mode
  * fast blinking - connected mode
- * blinking 2 times - BT name command not OK
+ * blinking 2 times - BT init failed
  * blinking 3 times - mdns not started
- * blinking 4 times - BT init failed
  * blinking 9 times - shutdown voltage
  * blinking 10 times - internal failure
  * 
@@ -56,15 +55,15 @@
 #include "frequency.h"
 #include "rx5808.h"
 #include "statemanager.h"
-#include "webupdate.h"
 #include "batterymgr.h"
 #include "wifiwebserver.h"
+#include "wifiap.h"
 
 // debug mode flags
 //#define DEBUG
 //#define MEASURE
 
-#define VERSION "FLT32-R1.0"
+#define VERSION "FLT32-R1.1"
 
 // pin configurations
 const unsigned int PIN_SPI_SLAVE_SELECT = 16;
@@ -88,8 +87,8 @@ unsigned long lastLoopTimeRun = 0L;
 comm::WifiWebServer wifiWebServer(&storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager, &loopTime);
 comm::WifiComm wifiComm(&storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager, &loopTime);
 comm::BtComm btComm(&btSerial, &storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager, &wifiComm, &loopTime);
+comm::WifiAp wifiAp;
 unsigned long fastRssiTimeout = 0L;
-WebUpdate webUpdate(&storage);
 bool lowVoltageSent = false;
 
 /*---------------------------------------------------
@@ -114,8 +113,6 @@ void setup() {
 	Serial.flush();
 #endif
 
-	batteryMgr.enableVrefOutput();
-
 	// blink led to show startup
 	for (int i = 0; i < 20; i++) {
 		led.toggle();
@@ -132,9 +129,9 @@ void setup() {
 	pinMode(PIN_WEB_UPDATE, INPUT_PULLUP);
 	if (digitalRead(PIN_WEB_UPDATE) == LOW) {
 #ifdef DEBUG
-		Serial.println(F("enabling webupdate mode"));
-#endif		
-		stateManager.setState(statemanagement::state_enum::WEBUPDATE);
+		Serial.println(F("force wifi ap mode"));
+#endif
+		wifiAp.connect();
 	}
 
 #ifdef DEBUG
@@ -151,97 +148,46 @@ void setup() {
 	Serial.printf("alarmVoltage: %f, shutdownVoltage: %f\n", batteryMgr.getAlarmVoltage(), batteryMgr.getShutdownVoltage());
 #endif
 
-	if (stateManager.isStateWebupdate()) {
-		// add delay to make it possible to measure the vref output voltage
-		// by the user
-		delay(5000);
-		// running in webupdate mode
+	lapDetector.init();
+
 #ifdef DEBUG
-		Serial.println(F("starting webupdate mode"));
-		Serial.println(F("setting up wifi ap"));
+	Serial.println(F("setting radio frequency"));
 #endif
-		WiFi.softAP("fltunit", "fltunit");
+	unsigned int channelData = freq::Frequency::getSPIFrequencyForChannelIndex(storage.getChannelIndex());
+	rx5808.freq(channelData);
 #ifdef DEBUG
-		IPAddress myIP = WiFi.softAPIP();
-		Serial.print(F("AP IP address: "));
-		Serial.println(myIP);
+	Serial.print(F("channel info: "));
+	Serial.print(freq::Frequency::getFrequencyForChannelIndex(storage.getChannelIndex()));
+	Serial.print(F(" MHz, "));
+	Serial.println(freq::Frequency::getChannelNameForChannelIndex(storage.getChannelIndex()));
 #endif
 
+	if (wifiAp.isConnected()) {
+		wifiWebServer.begin();
+	} else {
+		// try to connect to wifi, if ssid not found, start bluetooth
+		wifiConnect();
+	}
+
+	// no wifi found, start bluetooth
+	if (!wifiComm.isConnected() && !wifiAp.isConnected()) {
+		bluetoothConnect();
+	}
+	// blink <cell number> of times to give feedback on number of connected battery cells
+	led.mode(ledio::modes::BLINK_SEQUENCE);
+	led.blinkSequence(batteryMgr.getCells(), 15, 250);
+
+	if (wifiWebServer.isConnected()) {
 #ifdef DEBUG
 		Serial.println(F("setting up mdns"));
 #endif
+		MDNS.addService("http", "tcp", 80);
 		if (!MDNS.begin("fltunit")) {
 #ifdef DEBUG
 			Serial.println(F("error setting up MDNS responder!"));
 #endif
 			blinkError(3);
 		}
-		webUpdate.setVersion(VERSION);
-		webUpdate.begin();
-	    MDNS.addService("http", "tcp", 80);
-
-		// blink 5 times to show end of setup() and start of webupdate
-		led.mode(ledio::modes::BLINK_SEQUENCE);
-		led.blinkSequence(5, 500, 1000);
-	} else {
-#ifdef DEBUG
-		Serial.println(F("starting in normal mode"));
-#endif
-		// non webupdate mode
-		lapDetector.init();
-
-#ifdef DEBUG
-		Serial.println(F("setting radio frequency"));
-#endif
-		unsigned int channelData = freq::Frequency::getSPIFrequencyForChannelIndex(storage.getChannelIndex());
-		rx5808.freq(channelData);
-#ifdef DEBUG
-		Serial.print(F("channel info: "));
-		Serial.print(freq::Frequency::getFrequencyForChannelIndex(storage.getChannelIndex()));
-		Serial.print(F(" MHz, "));
-		Serial.println(freq::Frequency::getChannelNameForChannelIndex(storage.getChannelIndex()));
-#endif
-
-#ifdef DEBUG
-		Serial.println(F("connecting wifi"));
-#endif
-		wifiComm.connect();
-		if (wifiComm.isConnected()) {
-#ifdef DEBUG
-			Serial.println(F("wifi connected, starting node registration"));
-#endif
-			wifiComm.reg();
-			wifiWebServer.begin();
-#ifdef DEBUG
-			Serial.println(F("node registration done"));
-		} else {
-			Serial.println(F("wifi not connected"));
-#endif
-		}
-
-		if (!wifiComm.isConnected()) {
-#ifdef DEBUG
-			Serial.println(F("connecting bluetooth"));
-#endif
-			int bterr = btComm.connect();
-			if (bterr < 0) {
-#ifdef DEBUG
-				Serial.print(F("bt module error: "));
-				Serial.println(bterr);
-#endif
-				if  (bterr == comm::btErrorCode::NAME_COMMAND_FAILED) {
-					blinkError(2);
-				} else if  (bterr == comm::btErrorCode::INIT_FAILED) {
-					blinkError(4);
-				}
-			}
-#ifdef DEBUG
-			Serial.println(F("bluetooth connected"));
-#endif
-		}
-		// blink <cell number> times to show end of setup() and start of calibration
-		led.mode(ledio::modes::BLINK_SEQUENCE);
-		led.blinkSequence(batteryMgr.getCells(), 15, 250);
 	}
 
 #ifdef DEBUG
@@ -255,7 +201,7 @@ void setup() {
 void loop() {
 
 	batteryMgr.measure();
-	if (batteryMgr.isShutdown() && !stateManager.isStateWebupdate()) {
+	if (batteryMgr.isShutdown()) {
 #ifdef DEBUG
 		Serial.println(F("voltage isShutdown"));
 #endif
@@ -286,7 +232,7 @@ void loop() {
 #if defined(DEBUG) || defined(MEASURE)
 		Serial.println(F("STATE: STARTUP"));
 #endif
-		stateManager.setState(statemanagement::state_enum::CALIBRATION);
+		stateManager.update(statemanagement::state_enum::CALIBRATION);
 		lapDetector.enableCalibrationMode();
 		rssi.setFilterRatio(storage.getFilterRatioCalibration());
 #ifdef DEBUG
@@ -319,7 +265,7 @@ void loop() {
 #ifdef MEASURE
 			Serial.println(F("INFO: lap detected, calibration is done"));
 #endif
-			stateManager.setState(statemanagement::state_enum::CALIBRATION_DONE);
+			stateManager.update(statemanagement::state_enum::CALIBRATION_DONE);
 		}
 	} else if (stateManager.isStateCalibrationDone()) {
 #if defined(DEBUG) || defined(MEASURE)
@@ -332,7 +278,7 @@ void loop() {
 			wifiComm.sendCalibrationDone();
 		}
 		rssi.setFilterRatio(storage.getFilterRatio());
-		stateManager.setState(statemanagement::state_enum::RACE);
+		stateManager.update(statemanagement::state_enum::RACE);
 		led.mode(ledio::modes::OFF);
 	} else if (stateManager.isStateRace()) {
 #ifdef MEASURE
@@ -361,8 +307,32 @@ void loop() {
 			Serial.println(lapDetector.getLastLapTime());
 #endif
 		}
-	} else if (stateManager.isStateWebupdate()) {
-		webUpdate.run();
+	} else if (stateManager.getState() == statemanagement::state_enum::SWITCH_TO_BLUETOOTH) {
+		if (wifiWebServer.isConnected()) {
+			wifiWebServer.disconnect();
+		}
+		if (wifiComm.isConnected()) {
+			wifiComm.disconnect();
+		}
+		if (wifiAp.isConnected()) {
+			wifiAp.disconnect();
+		}
+		bluetoothConnect();
+		stateManager.update(statemanagement::state_enum::RESTORE_STATE);
+	} else if (stateManager.getState() == statemanagement::state_enum::VREF_OUTPUT) {
+		if (wifiWebServer.isConnected()) {
+			wifiWebServer.disconnect();
+		}
+		if (wifiComm.isConnected()) {
+			wifiComm.disconnect();
+		}
+		if (wifiAp.isConnected()) {
+			wifiAp.disconnect();
+		}
+		if (btComm.isConnected()) {
+			btComm.disconnect();
+		}
+		batteryMgr.enableVrefOutput();
 	} else if (stateManager.isStateError()) {
 #ifdef MEASURE
 		Serial.println(F("STATE: ERROR"));
@@ -371,21 +341,62 @@ void loop() {
 		blinkError(10);
 	}
 
-	// if we are in network mode, process udp
 	if (wifiComm.isConnected()) {
+		// if we are in network mode, process udp
 		wifiComm.processIncomingMessage();
-	}
-
-	if (btComm.isConnected()) {
+	} else if (btComm.isConnected()) {
+		// in bluetooth mode process the incoming bluetooth serial data
 		btComm.processIncomingMessage();
 	}
 
 	if (wifiWebServer.isConnected()) {
+		// handle the wifi webserver data
 		wifiWebServer.handle();
 	}
 
 	loopTime = micros() - lastLoopTimeRun;
 	lastLoopTimeRun = micros();
+}
+
+void bluetoothConnect() {
+#ifdef DEBUG
+	Serial.println(F("connecting bluetooth"));
+#endif
+	int bterr = btComm.connect();
+	if (bterr != comm::btErrorCode::OK) {
+#ifdef DEBUG
+		Serial.print(F("bt module error: "));
+		Serial.println(bterr);
+#endif
+		if (bterr == comm::btErrorCode::INIT_FAILED) {
+			blinkError(2);
+		}
+	}
+#ifdef DEBUG
+	Serial.println(F("bluetooth connected"));
+#endif
+}
+
+void wifiConnect() {
+#ifdef DEBUG
+	Serial.println(F("connecting wifi"));
+#endif
+	wifiComm.connect();
+	if (wifiComm.isConnected()) {
+#ifdef DEBUG
+		Serial.println(F("wifi connected, starting node registration"));
+#endif
+		wifiComm.reg();
+#ifdef DEBUG
+		Serial.println(F("node registration done, starting webserver"));
+#endif
+		wifiWebServer.begin();
+#ifdef DEBUG
+		Serial.println(F("node registration done"));
+	} else {
+		Serial.println(F("wifi not connected"));
+#endif
+	}
 }
 
 /*---------------------------------------------------

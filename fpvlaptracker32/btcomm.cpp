@@ -26,7 +26,7 @@ int BtComm::connect() {
     }
 
 #ifdef DEBUG
-    Serial.print(F("name command: "));
+    Serial.print(F("bluetooth name: "));
     Serial.println(name);
 #endif
     this->_connected = true;
@@ -294,5 +294,6 @@ bool BtComm::hasClient() {
 }
 
 void BtComm::disconnect() {
+    this->_connected = false;
     this->_btSerial->end();
 }

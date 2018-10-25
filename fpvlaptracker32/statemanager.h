@@ -15,7 +15,8 @@ namespace statemanagement {
         RSSI,
         RESTORE_STATE,
         ERROR,
-        WEBUPDATE
+        VREF_OUTPUT,
+        SWITCH_TO_BLUETOOTH
     };
 
     class StateManager {
@@ -24,7 +25,7 @@ namespace statemanagement {
         }
 
         String toString(state_enum state) {
-            if (state == state_enum::CALIBRATION) {
+            if (state == state_enum::CALIBRATION || state == state_enum::CALIBRATION_DONE) {
                 return "Calibration";
             } else if (state == state_enum::RACE) {
                 return "Race";
@@ -36,7 +37,14 @@ namespace statemanagement {
                 return "RSSI";
             } else if (state == state_enum::STARTUP) {
                 return "Startup";
+            } else if (state == state_enum::VREF_OUTPUT) {
+                return "VREF output";
+            } else if (state == state_enum::SWITCH_TO_BLUETOOTH) {
+                return "switch to bluetooth mode";
             } else {
+#ifdef DEBUG
+                Serial.printf("unknown state: %d\n", state);
+#endif
                 return "Unknown";
             }
         }
@@ -67,10 +75,6 @@ namespace statemanagement {
 
         boolean isStateRssi() {
             return this->_state == state_enum::RSSI;
-        }
-
-        boolean isStateWebupdate() {
-            return this->_state == state_enum::WEBUPDATE;
         }
 
         state_enum getState() {

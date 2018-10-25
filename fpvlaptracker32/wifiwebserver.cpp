@@ -16,6 +16,10 @@ void WifiWebServer::sendJson(JsonObject& root) {
     this->_server.send(200, "application/json", result);
 }
 
+String WifiWebServer::concat(String text) {
+    return this->_header + text + this->_footer;
+}
+
 void WifiWebServer::begin() {
 
 	this->_server.onNotFound([&]() {
@@ -32,14 +36,87 @@ void WifiWebServer::begin() {
             message += " " + this->_server.argName(i) + ": " + this->_server.arg(i) + "\n";
         }
 
-        this->_server.send(404, "text/plain", message);
+        this->_server.send(404, "text/plain", this->concat(message));
     });
 
     this->_server.on("/", HTTP_GET, [&]() {
         this->_server.sendHeader("Connection", "close");
         String temp(this->_serverIndex);
         temp.replace("%VERSION%", this->_version);
-        this->_server.send(200, "text/html", temp);
+        uint64_t chipId = ESP.getEfuseMac();
+        char strChipId[15] = { 0 };
+        sprintf(strChipId, "%u", chipId);
+        String chipString = strChipId;
+        temp.replace("%CHIPID%", chipString);
+        this->_server.send(200, "text/html", this->concat(temp));
+    });
+    
+    this->_server.on("/factorydefaults", HTTP_GET, [&]() {
+        this->_server.sendHeader("Connection", "close");
+        this->_server.send(200, "text/html", this->concat("really load factory defaults? <a href='/dofactorydefaults'>yes</a> <a href='/'>no</a>"));
+    });
+    this->_server.on("/dofactorydefaults", HTTP_GET, [&]() {
+        this->_server.sendHeader("Connection", "close");
+        this->_storage->loadFactoryDefaults();
+        this->_storage->store();
+        this->_server.send(200, "text/html", this->concat("factory defaults loaded"));
+    });
+
+    this->_server.on("/vref", HTTP_GET, [&]() {
+        this->_server.sendHeader("Connection", "close");
+        this->_server.send(200, "text/html", this->concat("really goto vref mode? <a href='/dovref'>yes</a> <a href='/'>no</a>"));
+    });
+    this->_server.on("/dovref", HTTP_GET, [&]() {
+        this->_server.sendHeader("Connection", "close");
+        this->_stateManager->update(statemanagement::state_enum::VREF_OUTPUT);
+        this->_server.send(200, "text/html", this->concat("start VREF output, wifi/bluetooth disabled! reboot to exit this mode."));
+    });
+
+    this->_server.on("/bluetooth", HTTP_GET, [&]() {
+        this->_server.sendHeader("Connection", "close");
+        this->_server.send(200, "text/html", this->concat("switching to bluetooth mode, wifi is now disabled!"));
+        this->_stateManager->update(statemanagement::state_enum::SWITCH_TO_BLUETOOTH);
+    });
+
+    this->_server.on("/update", HTTP_POST, [&]() {
+        this->_server.sendHeader("Connection", "close");
+        this->_server.send(200, "text/html", this->concat((Update.hasError()) ? "update failed!\n" : "update successful! rebooting...<a href='/'>back</a>"));
+        this->_server.client().setNoDelay(true);
+        delay(100);
+        this->_server.client().stop();
+        ESP.restart();
+    }, [&]() {
+        HTTPUpload& upload = this->_server.upload();
+        if (upload.status == UPLOAD_FILE_START) {
+#ifdef DEBUG
+            Serial.setDebugOutput(true);
+            Serial.printf("Update: %s\n", upload.filename.c_str());
+#endif
+            if (!Update.begin()) { //start with max available size
+#ifdef DEBUG
+                Update.printError(Serial);
+#endif
+            }
+        } else if (upload.status == UPLOAD_FILE_WRITE) {
+            if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+#ifdef DEBUG
+                Update.printError(Serial);
+#endif
+            }
+        } else if (upload.status == UPLOAD_FILE_END) {
+            if (Update.end(true)) { //true to set the size to the current progress
+#ifdef DEBUG
+                Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
+#endif
+            } else {
+#ifdef DEBUG
+                Update.printError(Serial);
+#endif
+            }
+#ifdef DEBUG
+            Serial.setDebugOutput(false);
+#endif
+        }
     });
     
     this->_server.on("/rssi", HTTP_GET, [&]() {

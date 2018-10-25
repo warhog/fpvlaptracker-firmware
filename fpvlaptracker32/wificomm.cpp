@@ -200,5 +200,6 @@ void WifiComm::sendData() {
 }
 
 void WifiComm::disconnect() {
+    this->_connected = false;
     WiFi.disconnect();
 }
