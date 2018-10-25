@@ -95,6 +95,7 @@ bool lowVoltageSent = false;
  * application setup
  *-------------------------------------------------*/
 void setup() {
+	led.off();
 #if defined(DEBUG) || defined(MEASURE)
 	Serial.begin(115200);
 	Serial.println("");
@@ -112,13 +113,6 @@ void setup() {
 #endif
 	Serial.flush();
 #endif
-
-	// blink led to show startup
-	for (int i = 0; i < 20; i++) {
-		led.toggle();
-		delay(25);
-	}
-	led.off();
 
 	randomSeed(analogRead(PIN_ANALOG_BATTERY));
 
@@ -147,6 +141,14 @@ void setup() {
 #ifdef DEBUG
 	Serial.printf("alarmVoltage: %f, shutdownVoltage: %f\n", batteryMgr.getAlarmVoltage(), batteryMgr.getShutdownVoltage());
 #endif
+	// blink <cell number> of times to give feedback on number of connected battery cells and signal startup
+	led.mode(ledio::modes::BLINK_SEQUENCE);
+	led.blinkSequence(batteryMgr.getCells(), 15, 250);
+	for (unsigned int i = 0; i < ((250 + 15) * batteryMgr.getCells()); i++) {
+		led.run();
+		delay(1);
+	}
+	led.off();
 
 	lapDetector.init();
 
@@ -173,9 +175,6 @@ void setup() {
 	if (!wifiComm.isConnected() && !wifiAp.isConnected()) {
 		bluetoothConnect();
 	}
-	// blink <cell number> of times to give feedback on number of connected battery cells
-	led.mode(ledio::modes::BLINK_SEQUENCE);
-	led.blinkSequence(batteryMgr.getCells(), 15, 250);
 
 	if (wifiWebServer.isConnected()) {
 #ifdef DEBUG

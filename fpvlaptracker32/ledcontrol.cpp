@@ -7,6 +7,7 @@ LedControl::LedControl(const int pin) : _pin(0), _mode(modes::STATIC), _interval
     _blinkSequenceCount(0L), _blinkSequenceLength(0L), _blinkSequenceWait(0L), _blinkSequenceState(0) {
     this->_pin = pin;
     pinMode(this->_pin, OUTPUT);
+    this->off();
 }
 
 void LedControl::toggle() {
