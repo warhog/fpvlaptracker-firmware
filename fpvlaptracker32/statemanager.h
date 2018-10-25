@@ -14,7 +14,8 @@ namespace statemanagement {
         RACE,
         RSSI,
         RESTORE_STATE,
-        ERROR
+        ERROR,
+        WEBUPDATE
     };
 
     class StateManager {
@@ -66,6 +67,10 @@ namespace statemanagement {
 
         boolean isStateRssi() {
             return this->_state == state_enum::RSSI;
+        }
+
+        boolean isStateWebupdate() {
+            return this->_state == state_enum::WEBUPDATE;
         }
 
         state_enum getState() {
