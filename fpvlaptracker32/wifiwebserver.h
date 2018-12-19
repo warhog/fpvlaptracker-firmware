@@ -46,7 +46,7 @@ namespace comm {
             const char *_version;
             bool _connected;
             unsigned long *_loopTime;
-            char *_header = "<html><head><style>body { font-family: Arial; background: #00bfff; } a { color: #0000ff; } #content { margin: auto; border-radius: 15px; background: #ffffff; padding: 20px; width: 600px;}</style></head><body><div id='content'><h1>fpvlaptracker32</h1>";
+            char *_header = "<html><head><style>body { font-family: Arial; background: #E6E6E6; } a { color: #0000ff; } #content { margin: auto; border-radius: 15px; background: #ffffff; padding: 20px; width: 600px;}</style></head><body><div id='content'><h1>fpvlaptracker32</h1>";
             char *_footer = "</div></body></html>";
             char *_serverIndex = "chip id: %CHIPID%<br />current version: %VERSION%<br />build date: " __DATE__ "  " __TIME__ "<br /><br /><a href='/bluetooth'>switch to bluetooth</a><br /><hr size='1'/><h2>maintenance</h2>select .bin file to flash.<br /><br /><form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='update'></form><br /><a href='/factorydefaults'>load factory defaults</a><br /><br /><a href='/vref'>output VREF</a>";
     };
