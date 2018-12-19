@@ -63,7 +63,7 @@
 //#define DEBUG
 //#define MEASURE
 
-#define VERSION "FLT32-R1.1"
+#define VERSION "FLT32-R1.2"
 
 // pin configurations
 const unsigned int PIN_SPI_SLAVE_SELECT = 16;
@@ -89,7 +89,7 @@ comm::WifiComm wifiComm(&storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VER
 comm::BtComm btComm(&btSerial, &storage, &rssi, &rx5808, &lapDetector, &batteryMgr, VERSION, &stateManager, &wifiComm, &loopTime);
 comm::WifiAp wifiAp;
 unsigned long fastRssiTimeout = 0L;
-bool lowVoltageSent = false;
+unsigned long lowVoltageTimeout = 0L;
 
 /*---------------------------------------------------
  * application setup
@@ -181,7 +181,7 @@ void setup() {
 		Serial.println(F("setting up mdns"));
 #endif
 		MDNS.addService("http", "tcp", 80);
-		if (!MDNS.begin("fltunit")) {
+		if (!MDNS.begin("flt-unit")) {
 #ifdef DEBUG
 			Serial.println(F("error setting up MDNS responder!"));
 #endif
@@ -205,17 +205,23 @@ void loop() {
 		Serial.println(F("voltage isShutdown"));
 #endif
 		blinkError(9);
-	} else if (!lowVoltageSent && batteryMgr.isAlarm()) {
+	} else if (batteryMgr.isAlarm() && millis() > lowVoltageTimeout) {
+		// undervoltage warning
 #ifdef DEBUG
 		Serial.println(F("voltage isAlarm"));
 #endif
-		// undervoltage
+		lowVoltageTimeout = millis() + (30 * 1000);
 		if (btComm.isConnected() && btComm.hasClient()) {
 #ifdef DEBUG
-			Serial.println(F("voltage sendAlarm"));
+			Serial.println(F("bt voltage sendAlarm"));
 #endif
 			btComm.sendVoltageAlarm();
-			lowVoltageSent = true;
+		}
+		if (wifiComm.isConnected()) {
+#ifdef DEBUG
+			Serial.println(F("wifi voltage sendAlarm"));
+#endif
+			wifiComm.sendVoltageAlarm();
 		}
 	}
 
