@@ -170,6 +170,16 @@ void WifiComm::sendCalibrationDone() {
     this->sendUdpMessage(msg);    
 }
 
+void WifiComm::sendVoltageAlarm() {
+#ifdef DEBUG 
+    Serial.println(F("sending voltage alarm message"));
+#endif
+    String msg = "{\"type\":\"battery_low\",\"chipid\":";
+    msg += static_cast<unsigned long>(ESP.getEfuseMac());
+    msg += "}";
+    this->sendUdpMessage(msg);    
+}
+
 void WifiComm::sendData() {
 #ifdef DEBUG 
     Serial.println(F("sending data message"));

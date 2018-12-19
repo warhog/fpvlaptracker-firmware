@@ -26,6 +26,7 @@ namespace comm {
         void sendCalibrationDone();
         void sendData();
         void disconnect();
+        void sendVoltageAlarm();
 
     private:
         String getBroadcastIP();
