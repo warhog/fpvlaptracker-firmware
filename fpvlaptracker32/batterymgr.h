@@ -75,7 +75,7 @@ namespace battery {
         }
 
         bool isShutdown() {
-            return this->_voltageReading <= this->_alarmVoltage;
+            return this->_voltageReading <= this->_shutdownVoltage;
         }
 
         double getVoltage() {
