@@ -181,7 +181,7 @@ void setup() {
 		Serial.println(F("setting up mdns"));
 #endif
 		MDNS.addService("http", "tcp", 80);
-		if (!MDNS.begin("fltunit")) {
+		if (!MDNS.begin("flt-unit")) {
 #ifdef DEBUG
 			Serial.println(F("error setting up MDNS responder!"));
 #endif
