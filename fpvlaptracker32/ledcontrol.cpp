@@ -1,7 +1,6 @@
 #include "ledcontrol.h"
 
 using namespace ledio;
-#define UINT_MAX 65535
 
 LedControl::LedControl(const int pin) : _pin(0), _mode(modes::STATIC), _interval(1000L), _nextRun(0L),
     _blinkSequenceCount(0L), _blinkSequenceLength(0L), _blinkSequenceWait(0L), _blinkSequenceState(0) {
