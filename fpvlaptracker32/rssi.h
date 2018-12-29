@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ResponsiveAnalogRead.h>
+
 namespace lap {
 
 	class Rssi {
@@ -26,6 +28,8 @@ namespace lap {
 		unsigned int _currentRssiRawValue;
 		unsigned long _lastRun;
 		unsigned int _pin;
+		ResponsiveAnalogRead analog;
+
 	};
 
 }
