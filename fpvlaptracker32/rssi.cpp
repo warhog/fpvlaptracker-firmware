@@ -12,8 +12,6 @@ void Rssi::process() {
 	this->analog.update(rssi);
 
 	this->_currentRssiRawValue = rssi;
-	// this->_currentRssiSmoothed = (this->_filterRatio * (double)this->_currentRssiRawValue) + ((1.0f - this->_filterRatio) * this->_currentRssiSmoothed);
-	// this->_currentRssiValue = (unsigned int)this->_currentRssiSmoothed;
 	this->_currentRssiValue = (unsigned int)this->analog.getValue();
 	// Serial.printf("%d, %f\n", this->_currentRssiValue, this->_currentRssiSmoothed);
 }
