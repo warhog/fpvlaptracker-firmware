@@ -63,7 +63,7 @@
 //#define DEBUG
 //#define MEASURE
 
-#define VERSION "FLT32-R1.2"
+#define VERSION "FLT32-R1.3"
 
 // pin configurations
 const unsigned int PIN_SPI_SLAVE_SELECT = 16;
