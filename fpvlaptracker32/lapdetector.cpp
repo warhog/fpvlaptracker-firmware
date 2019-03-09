@@ -7,8 +7,8 @@ using namespace lap;
 
 // do also adjust values in storage constructor if you want to change defaults
 LapDetector::LapDetector(util::Storage *storage, Rssi *rssi) : _storage(storage), _triggerValue(10), _currentLapStart(0),
-    _lastLapTime(0), _rssiPeak(0), _rssiPeakTime(0), _calibrationMode(false), _calibrationOffset(10),
-	_reachedGate(false), _rssi(rssi), _triggerThreshold(60), _triggerThresholdCalibration(120), _lastLapRssi(0),
+    _lastLapTime(0), _rssiPeak(0), _rssiPeakTime(0), _calibrationMode(false), _calibrationOffset(30),
+	_reachedGate(false), _rssi(rssi), _triggerThreshold(120), _triggerThresholdCalibration(240), _lastLapRssi(0),
 	_lastLapEnd(0)
 	{
 

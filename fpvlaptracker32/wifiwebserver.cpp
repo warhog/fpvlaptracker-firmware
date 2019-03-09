@@ -129,6 +129,8 @@ void WifiWebServer::begin() {
     this->_server.on("/reboot", HTTP_GET, [&]() {
         this->_server.sendHeader("Connection", "close");
         this->_server.send(200, "text/html", "OK");
+        this->_server.client().flush();
+        this->_server.client().stop();
         ESP.restart();
     });
 
@@ -150,6 +152,18 @@ void WifiWebServer::begin() {
         root["filterRatioCalibration"] = this->_storage->getFilterRatioCalibration();
         root["version"] = this->_version;
         root["loopTime"] = *this->_loopTime;
+        this->sendJson(root);
+    });
+
+    this->_server.on("/skipcalibration", HTTP_GET, [&]() {
+        this->_server.sendHeader("Connection", "close");
+        JsonObject& root = this->prepareJson();
+        root["result"] = "NOK";
+        if (this->_stateManager->isStateCalibration()) {
+            this->_stateManager->setState(statemanagement::state_enum::CALIBRATION_DONE);
+            this->_lapDetector->disableCalibrationMode();
+            root["result"] = "OK";
+        }
         this->sendJson(root);
     });
 

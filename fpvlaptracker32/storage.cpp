@@ -14,7 +14,7 @@ const unsigned int CONFIG_START = 32;
 // do also adjust values in lapdetector constructor if you want to change defaults
 // also think of changing the default values in the app
 Storage::Storage() : _channelIndex(0), _minLapTime(4000), _ssid("flt-base"), _wifiPassword("flt-base"),
-    _triggerThresholdCalibration(120), _triggerThreshold(60), _calibrationOffset(10), _defaultVref(1100),
+    _triggerThresholdCalibration(240), _triggerThreshold(120), _calibrationOffset(30), _defaultVref(1100),
     _filterRatio(0.05), _filterRatioCalibration(0.005) {
 }
 
