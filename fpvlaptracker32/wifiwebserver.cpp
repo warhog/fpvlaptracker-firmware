@@ -167,6 +167,18 @@ void WifiWebServer::begin() {
         this->sendJson(root);
     });
 
+    this->_server.on("/backtocalibration", HTTP_GET, [&]() {
+        this->_server.sendHeader("Connection", "close");
+        JsonObject& root = this->prepareJson();
+        root["result"] = "NOK";
+        if (!this->_stateManager->isStateCalibration()) {
+            // go to startup here to make led flash
+            this->_stateManager->setState(statemanagement::state_enum::STARTUP);
+            root["result"] = "OK";
+        }
+        this->sendJson(root);
+    });
+
     this->_server.on("/devicedata", HTTP_POST, [&]() {
         this->_server.sendHeader("Connection", "close");
         if (this->_server.args() > 0) {
