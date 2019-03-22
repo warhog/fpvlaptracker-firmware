@@ -45,7 +45,7 @@ void WifiWebServer::begin() {
         temp.replace("%VERSION%", this->_version);
         temp.replace("%SSID%", this->_storage->getSsid());
         temp.replace("%PASSWORD%", this->_storage->getWifiPassword());
-        uint64_t chipId = ESP.getEfuseMac();
+        uint64_t chipId = ESP.getChipId();
         char strChipId[15] = { 0 };
         sprintf(strChipId, "%u", chipId);
         String chipString = strChipId;
@@ -64,35 +64,16 @@ void WifiWebServer::begin() {
         this->_server.send(200, "text/html", this->concat("factory defaults loaded"));
     });
 
-    this->_server.on("/vref", HTTP_GET, [&]() {
-        this->_server.sendHeader("Connection", "close");
-        this->_server.send(200, "text/html", this->concat("really goto vref mode? <a href='/dovref'>yes</a> <a href='/'>no</a>"));
-    });
-    this->_server.on("/dovref", HTTP_GET, [&]() {
-        this->_server.sendHeader("Connection", "close");
-		if (this->isConnected()) {
-			this->disconnect();
-		}
-        // TODO
-		// if (wifiAp.isConnected()) {
-		// 	wifiAp.disconnect();
-		// }
-		_batteryMgr->enableVrefOutput();
-        this->_server.send(200, "text/html", this->concat("started VREF output, wifi disabled! reboot to exit this mode."));
-    });
-
     this->_server.on("/setup", HTTP_POST, [&]() {
         this->_server.sendHeader("Connection", "close");
         if (this->_server.args() > 0) {
             bool reboot = false;
             if (this->_server.arg("ssid") != this->_storage->getSsid()) {
                 this->_storage->setSsid(this->_server.arg("ssid"));
-                Serial.println("new ssid");
                 reboot = true;
             }
             if (this->_server.arg("password") != this->_storage->getWifiPassword()) {
                 this->_storage->setWifiPassword(this->_server.arg("password"));
-                Serial.println("new password");
                 reboot = true;
             }
             this->_storage->store();
@@ -128,7 +109,8 @@ void WifiWebServer::begin() {
             Serial.setDebugOutput(true);
             Serial.printf("Update: %s\n", upload.filename.c_str());
 #endif
-            if (!Update.begin()) { //start with max available size
+        uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+        if (!Update.begin(maxSketchSpace)) { //start with max available size
 #ifdef DEBUG
                 Update.printError(Serial);
 #endif
@@ -143,9 +125,7 @@ void WifiWebServer::begin() {
             if (Update.end(true)) { //true to set the size to the current progress
 #ifdef DEBUG
                 Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
-#endif
             } else {
-#ifdef DEBUG
                 Update.printError(Serial);
 #endif
             }

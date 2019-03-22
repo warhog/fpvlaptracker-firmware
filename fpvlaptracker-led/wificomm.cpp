@@ -2,7 +2,7 @@
 
 using namespace comm;
 
-#define DEBUG
+//#define DEBUG
 const unsigned int UDP_PORT = 31337;
 
 WifiComm::WifiComm(util::Storage *storage, battery::BatteryMgr *batteryMgr, const char *version,
@@ -13,7 +13,7 @@ WifiComm::WifiComm(util::Storage *storage, battery::BatteryMgr *batteryMgr, cons
 int WifiComm::connect() {
     this->_wifiSsidFound = false;
 	this->_connected = false;
-	int nrOfWifis = WiFi.scanNetworks(false, false, false, 1000);
+	int nrOfWifis = WiFi.scanNetworks(false, false);
 #ifdef DEBUG
 	Serial.print(nrOfWifis);
 	Serial.println(F(" network(s) found"));
@@ -135,53 +135,69 @@ void WifiComm::processRequest(String request) {
     mode = this->split(request, ' ', 0);
     color = this->split(request, ' ', 1);
 
-    if (mode == "blink" || mode == "countdown") {
+    if (mode == "blink" || mode == "countdown" || mode == "right" || mode == "left" || mode == "expand") {
         interval = this->split(request, ' ', 2).toInt();
         if (interval == 0) {
             interval = 500;
         }
     }
 
-    uint32_t colorInt = this->convertColor(color);
+    RgbColor colorRgb = this->convertColor(color);
 
     if (mode == "blink") {
-        this->_ws2812->blinkColor(colorInt, interval);
+        this->_ws2812->blinkColor(colorRgb, interval);
     } else if (mode == "static") {
-        this->_ws2812->staticColor(colorInt);
+        this->_ws2812->staticColor(colorRgb);
     } else if (mode == "countdown") {
         this->_ws2812->clearAnimation();
-        this->_ws2812->addAnimationEntry(new ledio::AnimationEntry(FX_MODE_STATIC, BRIGHTNESS_MAX, SPEED_MAX, colorInt, interval, false));
-        this->_ws2812->addAnimationEntry(new ledio::AnimationEntry(FX_MODE_STATIC, BRIGHTNESS_MIN, SPEED_MAX, BLACK, 1, true));
+        this->_ws2812->addAnimationEntry(new ledio::ColorEntry(colorRgb, interval, false));
+        RgbColor black(0, 0, 0);
+        this->_ws2812->addAnimationEntry(new ledio::ColorEntry(black, 1, true));
+    } else if (mode == "right") {
+        this->_ws2812->right(colorRgb, interval);
+    } else if (mode == "left") {
+        this->_ws2812->left(colorRgb, interval);
+    } else if (mode == "expand") {
+        this->_ws2812->expand(colorRgb, interval);
     }
 
     Serial.printf("mode %s, color %s, interval %d\n", mode.c_str(), color.c_str(), interval);
 
 }
 
-uint32_t WifiComm::convertColor(String color) {
-    uint32_t colorInt = RED;
-    if (color == "blue") {
-        colorInt = BLUE;
+RgbColor WifiComm::convertColor(String color) {
+    RgbColor colorRgb(0, 0, 0);
+    if (color == "red") {
+        colorRgb.R = 255;
     } else if (color == "green") {
-        colorInt = GREEN;
+        colorRgb.G = 255;
+    } else if (color == "blue") {
+        colorRgb.B = 255;
     } else if (color == "white") {
-        colorInt = WHITE;
-    } else if (color == "black") {
-        colorInt = BLACK;
+        colorRgb.R = 255;
+        colorRgb.G = 255;
+        colorRgb.B = 255;
     } else if (color == "yellow") {
-        colorInt = YELLOW;
+        colorRgb.R = 255;
+        colorRgb.G = 255;
     } else if (color == "cyan") {
-        colorInt = CYAN;
+        colorRgb.G = 255;
+        colorRgb.B = 255;
     } else if (color == "magenta") {
-        colorInt = MAGENTA;
+        colorRgb.R = 255;
+        colorRgb.B = 255;
     } else if (color == "purple") {
-        colorInt = PURPLE;
+        colorRgb.R = 64;
+        colorRgb.B = 128;
     } else if (color == "orange") {
-        colorInt = ORANGE;
+        colorRgb.R = 255;
+        colorRgb.G = 48;
     } else if (color == "pink") {
-        colorInt = PINK;
+        colorRgb.R = 255;
+        colorRgb.G = 20;
+        colorRgb.B = 147;
     }
-    return colorInt;
+    return colorRgb;
 }
 
 String WifiComm::split(String s, char delimiter, int index) {
@@ -225,7 +241,7 @@ void WifiComm::sendVoltageAlarm() {
     Serial.println(F("sending voltage alarm message"));
 #endif
     String msg = "{\"type\":\"battery_low\",\"chipid\":";
-    msg += static_cast<unsigned long>(ESP.getEfuseMac());
+    msg += static_cast<unsigned long>(ESP.getChipId());
     msg += "}";
     this->sendUdpMessage(msg);    
 }
@@ -235,7 +251,7 @@ void WifiComm::reg() {
     Serial.println(F("sending register message"));
 #endif
     String msg = "{\"type\":\"registerled\",\"chipid\":";
-    msg += static_cast<unsigned long>(ESP.getEfuseMac());
+    msg += static_cast<unsigned long>(ESP.getChipId());
     msg += ",\"ip\":";
     msg += WiFi.localIP();
     msg += "}";
@@ -246,7 +262,7 @@ void WifiComm::sendData() {
 #ifdef DEBUG 
     Serial.println(F("sending data message"));
 #endif
-    unsigned long chipId = static_cast<unsigned long>(ESP.getEfuseMac());
+    unsigned long chipId = static_cast<unsigned long>(ESP.getChipId());
     DynamicJsonBuffer _jsonBuffer(400);
     JsonObject& root = _jsonBuffer.createObject();
     root["type"] = "leddevicedata";

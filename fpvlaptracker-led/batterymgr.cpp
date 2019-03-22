@@ -6,7 +6,7 @@ using namespace battery;
 
 void BatteryMgr::measure() {
     if (((millis() - this->_lastRun) > 30000 && !this->_measuring) || ((millis() - this->_lastRun) > 10 && this->_measuring)) {
-        unsigned int batteryRaw = adc1_get_raw(this->_chan);
+        unsigned int batteryRaw = analogRead(A0);
 #ifdef DEBUG
         Serial.printf("batteryRaw: %d\n", batteryRaw);
 #endif
@@ -14,7 +14,7 @@ void BatteryMgr::measure() {
         this->_nrOfMeasures++;
         if (this->_nrOfMeasures >= NR_OF_MEASURES) {
             this->_sum /= NR_OF_MEASURES;
-            this->_voltageReading = static_cast<double>(esp_adc_cal_raw_to_voltage(this->_sum, this->_adcChars)) / 1000.0 * CONVERSATION_FACTOR;
+            this->_voltageReading *= CONVERSATION_FACTOR;
 #ifdef DEBUG
             Serial.printf("sum: %f, voltageReading: %f, cell voltage: %f\n", this->_sum, this->_voltageReading, this->_voltageReading / this->_cells);
 #endif
@@ -30,26 +30,9 @@ void BatteryMgr::measure() {
 
 void BatteryMgr::detectCellsAndSetup() {
 
-    adc1_config_width(ADC_WIDTH_BIT_12);
-    adc1_config_channel_atten(this->_chan, ADC_ATTEN_DB_11);
-    this->_defaultVref = this->_storage->getDefaultVref();
-
-    esp_adc_cal_value_t val_type = esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_11, this->_defaultVref, this->_adcChars);
-#ifdef DEBUG
-    Serial.print(F("adc calibration data: "));
-    if (val_type == ESP_ADC_CAL_VAL_EFUSE_VREF) {
-        Serial.println(F("eFuse VREF"));
-    } else if (val_type == ESP_ADC_CAL_VAL_EFUSE_TP) {
-        Serial.println(F("2 point VREF"));
-    } else {
-        Serial.printf("default VREF: %d\n", this->_defaultVref);
-    }
-#endif
-    delay(250);
-
     double sum = 0.0;
     for (unsigned int i = 0; i < NR_OF_MEASURES; i++) {
-        unsigned int batteryRaw = adc1_get_raw(this->_chan);
+        unsigned int batteryRaw = analogRead(A0);
         sum += batteryRaw;
         delay(5);
     }
@@ -57,7 +40,6 @@ void BatteryMgr::detectCellsAndSetup() {
 #ifdef DEBUG
     Serial.printf("voltage raw: %f\n", sum);
 #endif
-    sum = static_cast<double>(esp_adc_cal_raw_to_voltage(sum, this->_adcChars)) / 1000.0;
     sum *= CONVERSATION_FACTOR;
 #ifdef DEBUG
     Serial.printf("voltage detect: %f\n", sum);

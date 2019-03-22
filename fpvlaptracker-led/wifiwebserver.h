@@ -1,9 +1,10 @@
 #pragma once
 
 #include <Arduino.h>
-#include <WebServer.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+#include <WiFiClient.h>
 #include <ArduinoJson.h>
-#include <Update.h>
 
 #include "storage.h"
 #include "batterymgr.h"
@@ -12,7 +13,7 @@ namespace comm {
     class WifiWebServer {
         public:
             WifiWebServer(util::Storage *storage, battery::BatteryMgr *batteryMgr, const char *version, unsigned long *loopTime) :
-                _storage(storage), _batteryMgr(batteryMgr), _version(version), _loopTime(loopTime) {}
+                _storage(storage), _batteryMgr(batteryMgr), _version(version), _loopTime(loopTime), _server(80) {}
             void begin();
             void handle();
             bool isConnected() {
@@ -20,6 +21,8 @@ namespace comm {
             }
             void disconnect() {
                 this->_connected = false;
+                this->_server.client().flush();
+                this->_server.client().stop();
                 this->_server.stop();
             }
         private:
@@ -27,7 +30,7 @@ namespace comm {
             void sendJson(JsonObject& root);
             String concat(String text);
 
-            WebServer _server;
+            ESP8266WebServer _server;
             util::Storage *_storage;
             battery::BatteryMgr *_batteryMgr;
             DynamicJsonBuffer _jsonBuffer;

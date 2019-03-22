@@ -33,17 +33,15 @@
  * 
  */
 #include <EEPROM.h>
-#include <ESPmDNS.h>
-#include <WiFi.h>
-#include <WS2812FX.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+#include <WiFiClient.h>
 
-#include "ledcontrol.h"
 #include "storage.h"
 #include "wificomm.h"
 #include "batterymgr.h"
 #include "wifiwebserver.h"
 #include "wifiap.h"
-#include "ESP32_RMT_Driver.h"
 #include "ws2812.h"
 
 // debug mode flags
@@ -52,16 +50,12 @@
 #define VERSION "FLTLED-R1.0"
 
 // pin configurations
-const unsigned int PIN_LED_WS2812 = 13;
-const unsigned int PIN_LED = 19;
-const unsigned int PIN_WEB_UPDATE = 32;
-const unsigned int PIN_ANALOG_BATTERY = 33;
+const unsigned int PIN_WEB_UPDATE = 5;
 
-WS2812FX ws2812fx = WS2812FX(32, PIN_LED_WS2812, NEO_GRB + NEO_KHZ800); // 32 RGB LEDs driven by GPIO_12
-ledio::Ws2812 ws2812(&ws2812fx);
-ledio::LedControl led(PIN_LED);
+NeoPixelBus<NeoGrbFeature, NeoEsp8266Dma800KbpsMethod> neopixels(32, 12);
+ledio::Ws2812 ws2812(&neopixels);
 util::Storage storage;
-battery::BatteryMgr batteryMgr(PIN_ANALOG_BATTERY, &storage);
+battery::BatteryMgr batteryMgr;
 unsigned long loopTime = 0L;
 unsigned long lastLoopTimeRun = 0L;
 comm::WifiWebServer wifiWebServer(&storage, &batteryMgr, VERSION, &loopTime);
@@ -69,37 +63,23 @@ comm::WifiComm wifiComm(&storage, &batteryMgr, VERSION, &loopTime, &ws2812);
 comm::WifiAp wifiAp;
 unsigned long lowVoltageTimeout = 0L;
 
-// Custom show functions which will use the RMT hardware to drive the LEDs.
-// Need a separate function for each ws2812fx instance.
-void customShow(void) {
-	uint8_t *pixels = ws2812fx.getPixels();
-	// numBytes is one more then the size of the ws2812fx's *pixels array.
-	// the extra byte is used by the driver to insert the LED reset pulse at the end.
-	uint16_t numBytes = ws2812fx.getNumBytes() + 1;
-	rmt_write_sample(RMT_CHANNEL_1, pixels, numBytes, false); // channel 0
-}
-
 /*---------------------------------------------------
  * application setup
  *-------------------------------------------------*/
 void setup() {
-	led.off();
-#if defined(DEBUG) || defined(MEASURE)
+#ifdef DEBUG
 	Serial.begin(115200);
 	Serial.println("");
 	Serial.println("");
-#ifdef DEBUG
 	Serial.println(F("booting"));
-    uint64_t chipId = ESP.getEfuseMac();
+	Serial.flush();
+    uint64_t chipId = ESP.getChipId();
     char strChipId[15] = { 0 };
     sprintf(strChipId, "%u", chipId);
     String chipString = strChipId;
     Serial.printf("Chip ID: %s\n", chipString.c_str());
-#endif
 	Serial.flush();
 #endif
-
-	randomSeed(analogRead(PIN_ANALOG_BATTERY));
 
 #ifdef DEBUG
 	Serial.println(F("setting up ports"));
@@ -125,30 +105,11 @@ void setup() {
 #ifdef DEBUG
 	Serial.printf("alarmVoltage: %f, shutdownVoltage: %f\n", batteryMgr.getAlarmVoltage(), batteryMgr.getShutdownVoltage());
 #endif
-	// blink <cell number> of times to give feedback on number of connected battery cells and signal startup
-	led.mode(ledio::modes::BLINK_SEQUENCE);
-	led.blinkSequence(batteryMgr.getCells(), 15, 250);
-	for (unsigned int i = 0; i < ((250 + 15) * batteryMgr.getCells()); i++) {
-		led.run();
-		delay(1);
-	}
-	led.off();
 
 #ifdef DEBUG
-	Serial.println(F("setting up ws2812fx"));
+	Serial.println(F("init ws2812"));
 #endif
-	ws2812fx.init();
-	ws2812fx.setBrightness(255);
-	rmt_tx_int(RMT_CHANNEL_1, ws2812fx.getPin());
-	ws2812fx.setCustomShow(customShow);
-	ws2812fx.setSegment(0, 0,  32-1, FX_MODE_COMET, BLUE,  1000, NO_OPTIONS);
-	ws2812fx.start();
-
-	ws2812fx.setColor(RED);
-
-	while (true) {
-		ws2812fx.service();
-	}
+	ws2812.init();
 
 #ifdef DEBUG
 	Serial.println(F("starting wifi"));
@@ -172,6 +133,10 @@ void setup() {
 		Serial.println(F("wifi not connected, starting wifi ap"));
 #endif
         wifiAp.connect();
+#ifdef DEBUG
+		Serial.println(F("starting wifiwebserver"));
+#endif
+		wifiWebServer.begin();
 	}
 
 	if (wifiWebServer.isConnected()) {
@@ -197,30 +162,27 @@ void setup() {
  *-------------------------------------------------*/
 void loop() {
 
-	batteryMgr.measure();
-	if (batteryMgr.isShutdown()) {
-#ifdef DEBUG
-		Serial.println(F("voltage isShutdown"));
-#endif
-		blinkError(9);
-	} else if (batteryMgr.isAlarm() && millis() > lowVoltageTimeout) {
-		// undervoltage warning
-#ifdef DEBUG
-		Serial.println(F("voltage isAlarm"));
-#endif
-		lowVoltageTimeout = millis() + (30 * 1000);
-		if (wifiComm.isConnected()) {
-#ifdef DEBUG
-			Serial.println(F("wifi voltage sendAlarm"));
-#endif
-			wifiComm.sendVoltageAlarm();
-		}
-	}
+// 	batteryMgr.measure();
+// 	if (batteryMgr.isShutdown()) {
+// #ifdef DEBUG
+// 		Serial.println(F("voltage isShutdown"));
+// #endif
+// 		blinkError(9);
+// 	} else if (batteryMgr.isAlarm() && millis() > lowVoltageTimeout) {
+// 		// undervoltage warning
+// #ifdef DEBUG
+// 		Serial.println(F("voltage isAlarm"));
+// #endif
+// 		lowVoltageTimeout = millis() + (30 * 1000);
+// 		if (wifiComm.isConnected()) {
+// #ifdef DEBUG
+// 			Serial.println(F("wifi voltage sendAlarm"));
+// #endif
+// 			wifiComm.sendVoltageAlarm();
+// 		}
+// 	}
 
-	led.run();
-	
 	ws2812.run();
-    ws2812fx.service();
 
 	if (wifiComm.isConnected()) {
 		// process incoming udp
@@ -265,12 +227,11 @@ void blinkError(unsigned int errorCode) {
 	Serial.println(errorCode);
 	Serial.flush();
 #endif
-	led.mode(ledio::modes::STATIC);
 	while (true) {
 		for (int i = 0; i < errorCode; i++) {
-			led.on();
+//			led.on();
 			delay(100);
-			led.off();
+//			led.off();
 			delay(200);
 		}
 		delay(1000);

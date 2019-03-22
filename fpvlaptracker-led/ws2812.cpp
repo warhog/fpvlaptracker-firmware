@@ -2,13 +2,41 @@
 
 using namespace ledio;
 
-Ws2812::Ws2812(WS2812FX *ws2812fx) : _ws2812fx(ws2812fx), _index(0), _state(0) {
+#define DEBUG
+
+Ws2812::Ws2812(NeoPixelBus<NeoGrbFeature, NeoEsp8266Dma800KbpsMethod> *neopixels) : _index(0), _state(0), _neopixels(neopixels) {
     this->clearAnimation();
+}
+
+void Ws2812::init() {
+    this->_neopixels->Begin();
+    this->_neopixels->Show();
+
+    RgbColor red(255, 0, 0);
+    RgbColor green(0, 255, 0);
+    RgbColor blue(0, 0, 255);
+    RgbColor white(255, 255, 255);
+    RgbColor black(0, 0, 0);
+
+    for (uint8_t i = 0; i < 32 / 4; i++) {
+        this->_neopixels->SetPixelColor(i * 4, red);
+        this->_neopixels->SetPixelColor(i * 4 + 1, green);
+        this->_neopixels->SetPixelColor(i * 4 + 2, blue);
+        this->_neopixels->SetPixelColor(i * 4 + 3, white);
+    }
+    this->_neopixels->Show();
+    for (uint8_t i = 0; i < 32; i++) {
+        this->_neopixels->SetPixelColor(i, black);
+        this->_neopixels->Show();
+        delay(10);
+    }
 }
 
 void Ws2812::clearAnimation() {
 
-    this->_ws2812fx->setBrightness(BRIGHTNESS_MIN);
+    RgbColor black(0, 0, 0);
+    this->_neopixels->ClearTo(black);
+    this->_neopixels->Show();
     this->_index = 0;
     this->_state = 0;
     // free memory
@@ -20,19 +48,61 @@ void Ws2812::clearAnimation() {
     this->_animations.clear();
 }
 
-void Ws2812::staticColor(uint32_t color) {
+void Ws2812::staticColor(RgbColor color) {
     this->clearAnimation();
-    this->addAnimationEntry(new AnimationEntry(FX_MODE_STATIC, BRIGHTNESS_MAX, SPEED_MAX, color, 0, true));
+    this->addAnimationEntry(new ColorEntry(color, 0, true));
 }
 
-void Ws2812::blinkColor(uint32_t color, uint16_t interval) {
+void Ws2812::blinkColor(RgbColor color, uint16_t interval) {
     this->clearAnimation();
-    this->addAnimationEntry(new AnimationEntry(FX_MODE_STATIC, BRIGHTNESS_MAX, SPEED_MAX, color, interval, false));
-    this->addAnimationEntry(new AnimationEntry(FX_MODE_STATIC, BRIGHTNESS_MIN, SPEED_MAX, BLACK, interval, false));
+    this->addAnimationEntry(new ColorEntry(color, interval, false));
+    RgbColor black(0, 0, 0);
+    this->addAnimationEntry(new ColorEntry(black, interval, false));
 }
 
 void Ws2812::addAnimationEntry(AnimationEntry *ae) {
     this->_animations.add(ae);
+}
+
+void Ws2812::right(RgbColor color, uint16_t interval) {
+    this->clearAnimation();
+    for (uint8_t i = 0; i < 7; i++) {
+        PixelEntry *entry = new PixelEntry(32, interval, false);
+        entry->setPixel(i + 0, 0, color);
+        entry->setPixel(i + 1, 1, color);
+        entry->setPixel(i + 1, 2, color);
+        entry->setPixel(i + 0, 3, color);
+        this->addAnimationEntry(entry);
+    }
+}
+
+void Ws2812::left(RgbColor color, uint16_t interval) {
+    this->clearAnimation();
+    for (uint8_t i = 7; i > 0; i--) {
+        PixelEntry *entry = new PixelEntry(32, interval, false);
+        entry->setPixel(i - 0, 0, color);
+        entry->setPixel(i - 1, 1, color);
+        entry->setPixel(i - 1, 2, color);
+        entry->setPixel(i - 0, 3, color);
+        this->addAnimationEntry(entry);
+    }
+}
+
+void Ws2812::expand(RgbColor color, uint16_t interval) {
+    this->clearAnimation();
+    for (uint8_t i = 0; i < 3; i++) {
+        PixelEntry *entry = new PixelEntry(32, interval, false);
+        entry->setPixel(3 - i - 0, 0, color);
+        entry->setPixel(3 - i - 1, 1, color);
+        entry->setPixel(3 - i - 1, 2, color);
+        entry->setPixel(3 - i - 0, 3, color);
+
+        entry->setPixel(i + 3 + 1, 0, color);
+        entry->setPixel(i + 3 + 2, 1, color);
+        entry->setPixel(i + 3 + 2, 2, color);
+        entry->setPixel(i + 3 + 1, 3, color);
+        this->addAnimationEntry(entry);
+    }
 }
 
 void Ws2812::run() {
@@ -42,18 +112,36 @@ void Ws2812::run() {
             this->_currentAnimationEntry = this->_animations.get(this->_index);
             this->_state = 1;
             this->_waitStart = millis();
-            this->_ws2812fx->setMode(this->_currentAnimationEntry->getMode());
-            this->_ws2812fx->setBrightness(this->_currentAnimationEntry->getBrightness());
-            this->_ws2812fx->setSpeed(this->_currentAnimationEntry->getSpeed());
-            this->_ws2812fx->setColor(this->_currentAnimationEntry->getColor());
+
+            if (this->_currentAnimationEntry->getType() == 0) {
+                // animationentry
+                this->_neopixels->ClearTo(this->_currentAnimationEntry->getColor());
 #ifdef DEBUG
-            Serial.print("output new data: ");
-            Serial.printf("mode: %d ", this->_currentAnimationEntry->getMode());
-            Serial.printf("brightness: %d ", this->_currentAnimationEntry->getBrightness());
-            Serial.printf("speed: %d ", this->_currentAnimationEntry->getSpeed());
-            Serial.printf("color: %u ", this->_currentAnimationEntry->getColor());
-            Serial.println();
+                Serial.print(F("output new data: "));
+                Serial.printf("color: %u ", this->_currentAnimationEntry->getColor());
+                Serial.println();
 #endif
+            } else if (this->_currentAnimationEntry->getType() == 1) {
+                // pixelentry
+#ifdef DEBUG
+                Serial.println(F("output new pixel data:"));
+                for (uint8_t y = 0; y < 4; y++) {
+                    for (uint8_t x = 0; x < 8; x++) {
+                        uint8_t i = y * 8 + x;
+                        if (this->_currentAnimationEntry->getPixel(i).R == 0 && this->_currentAnimationEntry->getPixel(i).G == 0 && this->_currentAnimationEntry->getPixel(i).B == 0) {
+                            Serial.print(" ");
+                        } else {
+                            Serial.print("X");
+                        }
+                    }
+                    Serial.println("");
+                }
+#endif
+                for (uint8_t i = 0; i < 32; i++) {
+                    this->_neopixels->SetPixelColor(i, this->_currentAnimationEntry->getPixel(i));
+                }
+            }
+            this->_neopixels->Show();
             this->_index++;
             if (this->_index >= this->_animations.size()) {
                 this->_index = 0;

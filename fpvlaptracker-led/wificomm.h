@@ -1,12 +1,17 @@
 #pragma once
 
 #include <Arduino.h>
-#include <WiFi.h>
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
 #include <ArduinoJson.h>
+#include <WiFiUdp.h>
+#include <NeoPixelBus.h>
 
 #include "storage.h"
 #include "batterymgr.h"
 #include "ws2812.h"
+#include "PixelEntry.h"
+#include "ColorEntry.h"
 
 namespace comm {
 
@@ -25,7 +30,7 @@ namespace comm {
         }
 
     private:
-        uint32_t convertColor(String color);
+        RgbColor convertColor(String color);
         void processRequest(String request);
         String split(String s, char delimiter, int index);
         String getBroadcastIP();
