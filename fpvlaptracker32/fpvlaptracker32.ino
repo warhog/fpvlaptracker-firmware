@@ -174,6 +174,10 @@ void setup() {
 	// no wifi found, start bluetooth
 	if (!wifiComm.isConnected() && !wifiAp.isConnected()) {
 		bluetoothConnect();
+		if (btComm.isConnected()) {
+			led.blinkSequence(UINT_MAX, 125, 5000);
+			led.mode(ledio::modes::BLINK_SEQUENCE);
+		}
 	}
 
 	if (wifiWebServer.isConnected()) {
@@ -243,8 +247,6 @@ void loop() {
 #ifdef DEBUG
 		Serial.println(F("switch to calibration mode"));
 #endif
-		led.interval(50);
-		led.mode(ledio::modes::BLINK);
 	} else if (stateManager.isStateScan()) {
 		rx5808.scan();
 		if (rx5808.isScanDone()) {
@@ -284,11 +286,6 @@ void loop() {
 		}
 		rssi.setFilterRatio(storage.getFilterRatio());
 		stateManager.update(statemanagement::state_enum::RACE);
-		led.mode(ledio::modes::OFF);
-		if (btComm.isConnected()) {
-			led.blinkSequence(UINT_MAX, 125, 5000);
-			led.mode(ledio::modes::BLINK_SEQUENCE);
-		}
 	} else if (stateManager.isStateRace()) {
 #ifdef MEASURE
 		Serial.println(F("STATE: RACE"));

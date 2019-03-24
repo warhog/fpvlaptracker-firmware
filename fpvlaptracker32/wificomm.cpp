@@ -42,7 +42,7 @@ int WifiComm::connect() {
 #endif
     		WiFi.begin(this->_storage->getSsid().c_str(), this->_storage->getWifiPassword().c_str());
             unsigned int wait = 0;
-            while (WiFi.status() != WL_CONNECTED && wait < 5000) {
+            while (WiFi.status() != WL_CONNECTED && wait < 10000) {
                 delay(500);
                 wait += 500;
 #ifdef DEBUG
