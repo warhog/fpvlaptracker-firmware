@@ -175,7 +175,7 @@ void setup() {
 	if (!wifiComm.isConnected() && !wifiAp.isConnected()) {
 		bluetoothConnect();
 		if (btComm.isConnected()) {
-			led.blinkSequence(UINT_MAX, 125, 5000);
+			led.blinkSequence(UINT_MAX, 125, 2000);
 			led.mode(ledio::modes::BLINK_SEQUENCE);
 		}
 	}
@@ -262,7 +262,11 @@ void loop() {
 	} else if (stateManager.isStateRssi()) {
 		if (millis() > fastRssiTimeout) {
 			fastRssiTimeout = millis() + 250;
-			btComm.sendFastRssiData(rssi.getRssi());
+			if (btComm.isConnected()) {
+				btComm.sendFastRssiData(rssi.getRssi());
+			} else if (wifiComm.isConnected()) {
+				wifiComm.sendFastRssiData(rssi.getRssi());
+			}
 		}
 	} else if (stateManager.isStateCalibration()) {
 #ifdef MEASURE

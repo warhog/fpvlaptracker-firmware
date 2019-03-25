@@ -155,26 +155,52 @@ void WifiWebServer::begin() {
         this->sendJson(root);
     });
 
-    this->_server.on("/skipcalibration", HTTP_GET, [&]() {
+    this->_server.on("/setstate", HTTP_GET, [&]() {
         this->_server.sendHeader("Connection", "close");
         JsonObject& root = this->prepareJson();
         root["result"] = "NOK";
-        if (this->_stateManager->isStateCalibration()) {
-            this->_stateManager->setState(statemanagement::state_enum::CALIBRATION_DONE);
-            this->_lapDetector->disableCalibrationMode();
-            root["result"] = "OK";
+#ifdef DEBUG
+        Serial.println(F("called /setstate"));
+        for (uint8_t i = 0; i < this->_server.args(); i++) {
+            Serial.printf("%s=%s\n", this->_server.argName(i).c_str(), this->_server.arg(i).c_str());
         }
-        this->sendJson(root);
-    });
-
-    this->_server.on("/backtocalibration", HTTP_GET, [&]() {
-        this->_server.sendHeader("Connection", "close");
-        JsonObject& root = this->prepareJson();
-        root["result"] = "NOK";
-        if (!this->_stateManager->isStateCalibration()) {
-            // go to startup here to make led flash
-            this->_stateManager->setState(statemanagement::state_enum::STARTUP);
-            root["result"] = "OK";
+#endif
+        if (this->_server.args() > 0) {
+            String newState = this->_server.arg("state");
+#ifdef DEBUG
+            Serial.printf("setstate argument: %s\n", newState.c_str());
+#endif
+            if (newState == "CALIBRATION_DONE") {
+                this->_stateManager->setState(statemanagement::state_enum::CALIBRATION_DONE);
+                this->_lapDetector->disableCalibrationMode();
+                root["result"] = "OK";
+            } else if (newState == "RSSI") {
+                this->_stateManager->setState(statemanagement::state_enum::RSSI);
+                root["result"] = "OK";
+            } else if (newState == "RESTORE_STATE") {
+                this->_stateManager->restoreState();
+                root["result"] = "OK";
+            } else if (newState == "CALIBRATION") {
+                // go to startup to make led flash, startup ends up in calibration
+                this->_stateManager->setState(statemanagement::state_enum::STARTUP);
+                root["result"] = "OK";
+            } else if (newState == "SWITCH_TO_BLUETOOTH") {
+                this->_stateManager->setState(statemanagement::state_enum::SWITCH_TO_BLUETOOTH);
+                root["result"] = "OK";
+            } else if (newState == "RACE") {
+                this->_stateManager->setState(statemanagement::state_enum::RACE);
+                root["result"] = "OK";
+            } else if (newState == "SCAN") {
+                this->_stateManager->setState(statemanagement::state_enum::SCAN);
+                root["result"] = "OK";
+            } else if (newState == "VREF_OUTPUT") {
+                this->_stateManager->setState(statemanagement::state_enum::VREF_OUTPUT);
+                root["result"] = "OK";
+#ifdef DEBUG
+            } else {
+                Serial.printf("invalid state: %s\n", newState.c_str());
+#endif
+            }
         }
         this->sendJson(root);
     });

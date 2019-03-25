@@ -27,6 +27,7 @@ namespace comm {
         void sendData();
         void disconnect();
         void sendVoltageAlarm();
+        void sendFastRssiData(unsigned int rssi);
 
     private:
         String getBroadcastIP();

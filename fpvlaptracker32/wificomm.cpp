@@ -98,6 +98,15 @@ void WifiComm::sendUdpMessage(String msg) {
     this->_udp.endPacket();
 }
 
+void WifiComm::sendFastRssiData(unsigned int rssi) {
+    String msg = "{\"type\":\"rssi\",\"chipid\":";
+    msg += static_cast<unsigned long>(ESP.getEfuseMac());
+    msg += ",\"rssi\":";
+    msg += rssi;
+    msg += "}";
+    this->sendUdpMessage(msg);
+}
+
 void WifiComm::lap(unsigned long lapTime, unsigned int rssi) {
 #ifdef DEBUG 
     Serial.println(F("sending lap message"));
