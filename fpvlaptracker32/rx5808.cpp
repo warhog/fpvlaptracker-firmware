@@ -6,7 +6,7 @@ using namespace radio;
 
 Rx5808::Rx5808(unsigned int pinSpiClock, unsigned int pinSpiData, unsigned int pinSpiSlaveSelect, unsigned int pinRssi) : 
     _pinSpiClock(pinSpiClock), _pinSpiData(pinSpiData), _pinSpiSlaveSelect(pinSpiSlaveSelect), _pinRssi(pinRssi),
-	_scanLastRun(0L), _scanLastRssi(0), _scanState(scan_state::DONE), _scanChannelIndex(0) {
+	_scanLastRun(0L), _scanLastRssi(0), _scanState(scan_state::DONE), _scanFrequency(freq::LOWEST_FREQUENCY), _scanChannel(65535) {
 
 }
 
@@ -19,15 +19,21 @@ void Rx5808::init() {
 	pinMode(this->_pinSpiSlaveSelect, OUTPUT);
 }
 
-void Rx5808::freq(unsigned int channelData) {
-	this->_freq = channelData;
-	// Second is the channel data from the lookup table
+uint16_t Rx5808::getSynthRegBValueFromFrequency(uint16_t frequency) {
+	uint16_t regValue = (frequency - 479) / 2;
+	uint16_t tempValue = regValue % 32;
+	regValue /= 32;
+	return (regValue << 7) + tempValue;
+}
+
+void Rx5808::freq(unsigned int frequency) {
+	this->_freq = frequency;
 	// 20 bytes of register data are sent, but the MSB 4 bits are zeros
 	// register address = 0x1, write, data0-15=channelData data15-19=0x0
 	this->serialEnableHigh();
 	this->serialEnableLow();
 
-	// Register 0x1
+	// Register 0x1 (SynthB)
 	this->serialSendBit1();
 	this->serialSendBit0();
 	this->serialSendBit0();
@@ -35,6 +41,8 @@ void Rx5808::freq(unsigned int channelData) {
 
 	// Write to register
 	this->serialSendBit1();
+
+	unsigned int channelData = getSynthRegBValueFromFrequency(frequency);
 
 	// D0-D15
 	//   note: loop runs backwards as more efficent on AVR
@@ -105,7 +113,7 @@ void Rx5808::serialEnableHigh() {
 void Rx5808::scan() {
 	if (this->_scanState == scan_state::SET) {
 		this->_scanLastRun = millis();
-		this->freq(freq::Frequency::getSPIFrequencyForChannelIndex(this->_scanChannelIndex));
+		this->freq(this->_scanFrequency);
 		this->_scanState = scan_state::SCAN;
 	} else if (this->_scanState == scan_state::SCAN) {
 		if ((this->_scanLastRun + 75) < millis()) {

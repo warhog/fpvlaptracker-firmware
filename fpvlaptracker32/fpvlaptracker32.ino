@@ -63,7 +63,7 @@
 //#define DEBUG
 //#define MEASURE
 
-#define VERSION "FLT32-R1.3"
+#define VERSION "FLT32-R1.4"
 
 // pin configurations
 const unsigned int PIN_SPI_SLAVE_SELECT = 16;
@@ -155,13 +155,12 @@ void setup() {
 #ifdef DEBUG
 	Serial.println(F("setting radio frequency"));
 #endif
-	unsigned int channelData = freq::Frequency::getSPIFrequencyForChannelIndex(storage.getChannelIndex());
-	rx5808.freq(channelData);
+	rx5808.freq(storage.getFrequency());
 #ifdef DEBUG
 	Serial.print(F("channel info: "));
-	Serial.print(freq::Frequency::getFrequencyForChannelIndex(storage.getChannelIndex()));
+	Serial.print(storage.getFrequency());
 	Serial.print(F(" MHz, "));
-	Serial.println(freq::Frequency::getChannelNameForChannelIndex(storage.getChannelIndex()));
+	Serial.println(freq::Frequency::getChannelNameForFrequency(storage.getFrequency()));
 #endif
 
 	if (wifiAp.isConnected()) {
@@ -247,17 +246,40 @@ void loop() {
 #ifdef DEBUG
 		Serial.println(F("switch to calibration mode"));
 #endif
+	} else if (stateManager.isStateDeepscan()) {
+		rx5808.scan();
+		if (rx5808.isScanDone()) {
+			// scan is done, start over
+			unsigned int currentFrequency = rx5808.getScanFrequency();
+			if (btComm.isConnected()) {
+				btComm.sendScanData(currentFrequency, rx5808.getScanResult());
+			} else if (wifiComm.isConnected()) {
+				wifiComm.sendScanData(currentFrequency, rx5808.getScanResult());
+			}
+			currentFrequency++;
+			if (currentFrequency >= freq::HIGHEST_FREQUENCY) {
+				currentFrequency = freq::LOWEST_FREQUENCY;
+			}
+			rx5808.startScan(currentFrequency);
+		}
 	} else if (stateManager.isStateScan()) {
 		rx5808.scan();
 		if (rx5808.isScanDone()) {
 			// scan is done, start over
-			unsigned int currentChannel = rx5808.getScanChannelIndex();
-			btComm.sendScanData(freq::Frequency::getFrequencyForChannelIndex(currentChannel), rx5808.getScanResult());
+			int currentChannel = rx5808.getScanChannel();
+			if (currentChannel != 65535) {
+				if (btComm.isConnected()) {
+					btComm.sendScanData(freq::Frequency::getFrequencyForChannelIndex(currentChannel), rx5808.getScanResult());
+				} else if (wifiComm.isConnected()) {
+					wifiComm.sendScanData(freq::Frequency::getFrequencyForChannelIndex(currentChannel), rx5808.getScanResult());
+				}
+			}
 			currentChannel++;
 			if (currentChannel >= freq::NR_OF_FREQUENCIES) {
 				currentChannel = 0;
 			}
-			rx5808.startScan(currentChannel);
+			rx5808.setScanChannel(currentChannel);
+			rx5808.startScan(freq::Frequency::getFrequencyForChannelIndex(currentChannel));
 		}
 	} else if (stateManager.isStateRssi()) {
 		if (millis() > fastRssiTimeout) {

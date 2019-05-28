@@ -3,6 +3,8 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 
+#include "frequency.h"
+
 namespace util {
 
     class Storage {
@@ -11,11 +13,11 @@ namespace util {
         void load();
         void store();
         void loadFactoryDefaults();
-        void setChannelIndex(unsigned int channelIndex) {
-            this->_channelIndex = channelIndex;
+        void setFrequency(unsigned int frequency) {
+            this->_frequency = frequency;
         }
-        unsigned int getChannelIndex() {
-            return this->_channelIndex;
+        unsigned int getFrequency() {
+            return this->_frequency;
         }
 
         void setMinLapTime(unsigned int minLapTime) {
@@ -88,7 +90,7 @@ namespace util {
         }
 
     private:
-        unsigned int _channelIndex;
+        unsigned int _frequency;
         unsigned long _minLapTime;
         unsigned int _triggerThreshold;
         unsigned int _triggerThresholdCalibration;
@@ -101,7 +103,7 @@ namespace util {
 
         struct StorageEepromStruct {
             char version[4];
-            unsigned int channelIndex;
+            unsigned int frequency;
             unsigned long minLapTime;
             unsigned int triggerThreshold;
             unsigned int triggerThresholdCalibration;

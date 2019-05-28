@@ -8,7 +8,7 @@ using namespace freq;
 unsigned int Frequency::getChannelIndexForFrequency(unsigned int frequency) {
     unsigned int ci = -1;
     for (unsigned int i = 0; i < NR_OF_FREQUENCIES; i++) {
-        unsigned int freq = pgm_read_word_near(channelFreqTable + i);
+        unsigned int freq = pgm_read_word_near(CHANNEL_FREQ_TABLE + i);
         if (freq == frequency) {
             ci = i;
             break;
@@ -19,21 +19,22 @@ unsigned int Frequency::getChannelIndexForFrequency(unsigned int frequency) {
 
 unsigned int Frequency::getFrequencyForChannelIndex(unsigned int channelIndex) {
     if (channelIndex >= (NR_OF_FREQUENCIES - 1)) {
-        return pgm_read_word_near(channelFreqTable + 0);
+        return pgm_read_word_near(CHANNEL_FREQ_TABLE + 0);
     }
-    return pgm_read_word_near(channelFreqTable + channelIndex);
+    return pgm_read_word_near(CHANNEL_FREQ_TABLE + channelIndex);
 }
 
 String Frequency::getChannelNameForChannelIndex(unsigned int channelIndex) {
     if (channelIndex >= (NR_OF_FREQUENCIES - 1)) {
-        return channelNames[0];
+        return CHANNEL_NAMES[0];
     }
-    return channelNames[channelIndex];
+    return CHANNEL_NAMES[channelIndex];
 }
 
-unsigned int Frequency::getSPIFrequencyForChannelIndex(unsigned int channelIndex) {
-    if (channelIndex >= (NR_OF_FREQUENCIES - 1)) {
-        return pgm_read_word_near(channelTable + 0);
+String Frequency::getChannelNameForFrequency(unsigned int frequency) {
+    int channelIndex = getChannelIndexForFrequency(frequency);
+    if (channelIndex == -1) {
+        return "-";
     }
-    return pgm_read_word_near(channelTable + channelIndex);
+    return CHANNEL_NAMES[channelIndex];
 }

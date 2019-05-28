@@ -49,12 +49,19 @@ namespace radio {
         Rx5808(unsigned int pinSpiClock, unsigned int pinSpiData, unsigned int pinSpiSlaveSelect, unsigned int pinRssi);
         void freq(unsigned int channelData);
         void init();
-        void startScan(unsigned int channelIndex) {
+        uint16_t getSynthRegBValueFromFrequency(uint16_t frequency);
+        void startScan(unsigned int frequency) {
             this->_scanState = scan_state::SET;
-            this->_scanChannelIndex = channelIndex;
+            this->_scanFrequency = frequency;
         }
-        unsigned int getScanChannelIndex() {
-            return this->_scanChannelIndex;
+        void setScanChannel(unsigned int scanChannel) {
+            this->_scanChannel = scanChannel;
+        }
+        unsigned int getScanChannel() {
+            return this->_scanChannel;
+        }
+        unsigned int getScanFrequency() {
+            return this->_scanFrequency;
         }
         bool isScanDone() {
             return this->_scanState == scan_state::DONE;
@@ -77,7 +84,8 @@ namespace radio {
         unsigned long _scanLastRun;
         unsigned int _scanLastRssi;
         scan_state _scanState;
-        unsigned int _scanChannelIndex;
+        unsigned int _scanFrequency;
+        unsigned int _scanChannel;
         
         void serialSendBit0();
         void serialSendBit1();

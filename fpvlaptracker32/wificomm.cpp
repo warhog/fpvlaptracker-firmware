@@ -98,6 +98,18 @@ void WifiComm::sendUdpMessage(String msg) {
     this->_udp.endPacket();
 }
 
+void WifiComm::sendScanData(unsigned int frequency, unsigned int rssi) {
+    String msg = "{\"type\":\"scan\",\"chipid\":";
+    msg += static_cast<unsigned long>(ESP.getEfuseMac());
+    msg += ",\"frequency\":";
+    msg += frequency;
+    msg += ",\"rssi\":";
+    msg += rssi;
+    msg += "}";
+    this->sendUdpMessage(msg);
+    this->_udp.flush();
+}
+
 void WifiComm::sendFastRssiData(unsigned int rssi) {
     String msg = "{\"type\":\"rssi\",\"chipid\":";
     msg += static_cast<unsigned long>(ESP.getEfuseMac());
@@ -194,11 +206,10 @@ void WifiComm::sendData() {
     Serial.println(F("sending data message"));
 #endif
     unsigned long chipId = static_cast<unsigned long>(ESP.getEfuseMac());
-    DynamicJsonBuffer _jsonBuffer(400);
-    JsonObject& root = _jsonBuffer.createObject();
+    DynamicJsonDocument root(400);
     root["type"] = "devicedata";
     root["chipid"] = chipId;
-    root["frequency"] = freq::Frequency::getFrequencyForChannelIndex(this->_storage->getChannelIndex());
+    root["frequency"] = this->_storage->getFrequency();
     root["minimumLapTime"] = this->_storage->getMinLapTime();
     root["triggerThreshold"] = this->_storage->getTriggerThreshold();
     root["triggerThresholdCalibration"] = this->_storage->getTriggerThresholdCalibration();
@@ -213,8 +224,7 @@ void WifiComm::sendData() {
     root["filterRatio"] = this->_storage->getFilterRatio();
     root["filterRatioCalibration"] = this->_storage->getFilterRatioCalibration();
     String msg("");
-    root.printTo(msg);
-    _jsonBuffer.clear();
+    serializeJson(root, msg);
     this->sendUdpMessage(msg);
 }
 

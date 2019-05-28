@@ -4,15 +4,9 @@
 
 using namespace comm;
 
-JsonObject& WifiWebServer::prepareJson() {
-    this->_jsonBuffer.clear();
-    JsonObject& root = this->_jsonBuffer.createObject();
-    return root;
-}
-
-void WifiWebServer::sendJson(JsonObject& root) {
+void WifiWebServer::sendJson() {
     String result("");
-    root.printTo(result);
+    serializeJson(this->_jsonDocument, result);
     this->_server.send(200, "application/json", result);
 }
 
@@ -121,9 +115,9 @@ void WifiWebServer::begin() {
     
     this->_server.on("/rssi", HTTP_GET, [&]() {
         this->_server.sendHeader("Connection", "close");
-        JsonObject& root = this->prepareJson();
-        root["rssi"] = this->_rssi->getRssi();
-        this->sendJson(root);
+        this->_jsonDocument.clear();
+        this->_jsonDocument["rssi"] = this->_rssi->getRssi();
+        this->sendJson();
     });
 
     this->_server.on("/reboot", HTTP_GET, [&]() {
@@ -136,29 +130,29 @@ void WifiWebServer::begin() {
 
     this->_server.on("/devicedata", HTTP_GET, [&]() {
         this->_server.sendHeader("Connection", "close");
-        JsonObject& root = this->prepareJson();
-        root["frequency"] = freq::Frequency::getFrequencyForChannelIndex(this->_storage->getChannelIndex());
-        root["minimumLapTime"] = this->_storage->getMinLapTime();
-        root["triggerThreshold"] = this->_storage->getTriggerThreshold();
-        root["triggerThresholdCalibration"] = this->_storage->getTriggerThresholdCalibration();
-        root["calibrationOffset"] = this->_storage->getCalibrationOffset();
-        root["state"] = this->_stateManager->toString(this->_stateManager->getState());
-        root["triggerValue"] = this->_lapDetector->getTriggerValue();
-        root["voltage"] = this->_batteryMgr->getVoltage();
-        root["uptime"] = millis() / 1000;
-        root["defaultVref"] = this->_storage->getDefaultVref();
-        root["rssi"] = this->_rssi->getRssi();
-        root["filterRatio"] = this->_storage->getFilterRatio();
-        root["filterRatioCalibration"] = this->_storage->getFilterRatioCalibration();
-        root["version"] = this->_version;
-        root["loopTime"] = *this->_loopTime;
-        this->sendJson(root);
+        this->_jsonDocument.clear();
+        this->_jsonDocument["frequency"] = this->_storage->getFrequency();
+        this->_jsonDocument["minimumLapTime"] = this->_storage->getMinLapTime();
+        this->_jsonDocument["triggerThreshold"] = this->_storage->getTriggerThreshold();
+        this->_jsonDocument["triggerThresholdCalibration"] = this->_storage->getTriggerThresholdCalibration();
+        this->_jsonDocument["calibrationOffset"] = this->_storage->getCalibrationOffset();
+        this->_jsonDocument["state"] = this->_stateManager->toString(this->_stateManager->getState());
+        this->_jsonDocument["triggerValue"] = this->_lapDetector->getTriggerValue();
+        this->_jsonDocument["voltage"] = this->_batteryMgr->getVoltage();
+        this->_jsonDocument["uptime"] = millis() / 1000;
+        this->_jsonDocument["defaultVref"] = this->_storage->getDefaultVref();
+        this->_jsonDocument["rssi"] = this->_rssi->getRssi();
+        this->_jsonDocument["filterRatio"] = this->_storage->getFilterRatio();
+        this->_jsonDocument["filterRatioCalibration"] = this->_storage->getFilterRatioCalibration();
+        this->_jsonDocument["version"] = this->_version;
+        this->_jsonDocument["loopTime"] = *this->_loopTime;
+        this->sendJson();
     });
 
     this->_server.on("/setstate", HTTP_GET, [&]() {
         this->_server.sendHeader("Connection", "close");
-        JsonObject& root = this->prepareJson();
-        root["result"] = "NOK";
+        this->_jsonDocument.clear();
+        this->_jsonDocument["result"] = "NOK";
 #ifdef DEBUG
         Serial.println(F("called /setstate"));
         for (uint8_t i = 0; i < this->_server.args(); i++) {
@@ -173,108 +167,114 @@ void WifiWebServer::begin() {
             if (newState == "CALIBRATION_DONE") {
                 this->_stateManager->setState(statemanagement::state_enum::CALIBRATION_DONE);
                 this->_lapDetector->disableCalibrationMode();
-                root["result"] = "OK";
+                this->_jsonDocument["result"] = "OK";
             } else if (newState == "RSSI") {
                 this->_stateManager->setState(statemanagement::state_enum::RSSI);
-                root["result"] = "OK";
+                this->_jsonDocument["result"] = "OK";
             } else if (newState == "RESTORE_STATE") {
                 this->_stateManager->restoreState();
-                root["result"] = "OK";
+                this->_jsonDocument["result"] = "OK";
             } else if (newState == "CALIBRATION") {
                 // go to startup to make led flash, startup ends up in calibration
                 this->_stateManager->setState(statemanagement::state_enum::STARTUP);
-                root["result"] = "OK";
+                this->_jsonDocument["result"] = "OK";
             } else if (newState == "SWITCH_TO_BLUETOOTH") {
                 this->_stateManager->setState(statemanagement::state_enum::SWITCH_TO_BLUETOOTH);
-                root["result"] = "OK";
+                this->_jsonDocument["result"] = "OK";
             } else if (newState == "RACE") {
                 this->_stateManager->setState(statemanagement::state_enum::RACE);
-                root["result"] = "OK";
+                this->_jsonDocument["result"] = "OK";
             } else if (newState == "SCAN") {
                 this->_stateManager->setState(statemanagement::state_enum::SCAN);
-                root["result"] = "OK";
+                this->_rx5808->startScan(this->_storage->getFrequency());
+                this->_jsonDocument["result"] = "OK";
+            } else if (newState == "DEEPSCAN") {
+                this->_stateManager->setState(statemanagement::state_enum::DEEPSCAN);
+                this->_rx5808->startScan(this->_storage->getFrequency());
+                this->_jsonDocument["result"] = "OK";
             } else if (newState == "VREF_OUTPUT") {
                 this->_stateManager->setState(statemanagement::state_enum::VREF_OUTPUT);
-                root["result"] = "OK";
+                this->_jsonDocument["result"] = "OK";
 #ifdef DEBUG
             } else {
                 Serial.printf("invalid state: %s\n", newState.c_str());
 #endif
             }
         }
-        this->sendJson(root);
+        this->sendJson();
     });
 
     this->_server.on("/devicedata", HTTP_POST, [&]() {
         this->_server.sendHeader("Connection", "close");
         if (this->_server.args() > 0) {
-            this->_jsonBuffer.clear();
-            JsonObject& root = this->_jsonBuffer.parseObject(this->_server.arg(0));
-            if (!root.success()) {
+            DeserializationError error = deserializeJson(this->_jsonDocument, this->_server.arg(0));
+            if (error) {
 #ifdef DEBUG
                 Serial.println(F("failed to parse config"));
+                Serial.println(this->_server.arg(0));
+                Serial.println(error.c_str());
 #endif
-                this->_server.send(500, "text/html", "failed to parse config");
+                this->_server.send(500, "text/html", "failed to parse config: " + String(error.c_str()));
             } else {
 #ifdef DEBUG
                 Serial.printf("got config: %s\n", this->_server.arg(0).c_str());
 #endif
                 bool reboot = false;
-                if (root["minimumLapTime"] > 1000 && root["minimumLapTime"] < 60000) {
-                    this->_storage->setMinLapTime(root["minimumLapTime"]);
+                if (this->_jsonDocument["minimumLapTime"] > 1000 && this->_jsonDocument["minimumLapTime"] < 60000) {
+                    this->_storage->setMinLapTime(this->_jsonDocument["minimumLapTime"]);
                 }
 
-                if (root["frequency"] >= 5325 && root["frequency"] <= 5945) {
-                    if (this->_storage->getChannelIndex() != freq::Frequency::getChannelIndexForFrequency(root["frequency"])) {
+                if (this->_jsonDocument["frequency"] >= 5325 && this->_jsonDocument["frequency"] <= 5945) {
+                    if (this->_storage->getFrequency() != this->_jsonDocument["frequency"]) {
                         reboot = true;
                     }
-                    this->_storage->setChannelIndex(freq::Frequency::getChannelIndexForFrequency(root["frequency"]));
+                    this->_storage->setFrequency(this->_jsonDocument["frequency"]);
                 }
 
-                if (root["triggerThreshold"] > 10 && root["triggerThreshold"] < 1024) {
-                    if (this->_storage->getTriggerThreshold() != root["triggerThreshold"]) {
+                if (this->_jsonDocument["triggerThreshold"] > 10 && this->_jsonDocument["triggerThreshold"] < 1024) {
+                    if (this->_storage->getTriggerThreshold() != this->_jsonDocument["triggerThreshold"]) {
                         reboot = true;
                     }
-                    this->_storage->setTriggerThreshold(root["triggerThreshold"]);
+                    this->_storage->setTriggerThreshold(this->_jsonDocument["triggerThreshold"]);
                 }
 
-                if (root["triggerThresholdCalibration"] > 10 && root["triggerThresholdCalibration"] < 1024) {
-                    if (this->_storage->getTriggerThresholdCalibration() != root["triggerThresholdCalibration"]) {
+                if (this->_jsonDocument["triggerThresholdCalibration"] > 10 && this->_jsonDocument["triggerThresholdCalibration"] < 1024) {
+                    if (this->_storage->getTriggerThresholdCalibration() != this->_jsonDocument["triggerThresholdCalibration"]) {
                         reboot = true;
                     }
-                    this->_storage->setTriggerThresholdCalibration(root["triggerThresholdCalibration"]);
+                    this->_storage->setTriggerThresholdCalibration(_jsonDocument["triggerThresholdCalibration"]);
                 }
 
-                if (root["calibrationOffset"] > 1 && root["calibrationOffset"] < 256) {
-                    this->_storage->setCalibrationOffset(root["calibrationOffset"]);
+                if (this->_jsonDocument["calibrationOffset"] > 1 && this->_jsonDocument["calibrationOffset"] < 256) {
+                    this->_storage->setCalibrationOffset(this->_jsonDocument["calibrationOffset"]);
                 }
                 
-                if (root["defaultVref"] > 999 && root["defaultVref"] < 1200) {
-                    if (this->_storage->getDefaultVref() != root["defaultVref"]) {
+                if (this->_jsonDocument["defaultVref"] > 999 && this->_jsonDocument["defaultVref"] < 1200) {
+                    if (this->_storage->getDefaultVref() != this->_jsonDocument["defaultVref"]) {
                         reboot = true;
                     }
-                    this->_storage->setDefaultVref(root["defaultVref"]);
+                    this->_storage->setDefaultVref(this->_jsonDocument["defaultVref"]);
                 }
 
-                if (root["filterRatio"] > 0.0 && root["filterRatio"] < 1.0) {
-                    this->_storage->setFilterRatio(root["filterRatio"]);
+                if (this->_jsonDocument["filterRatio"] > 0.0 && this->_jsonDocument["filterRatio"] < 1.0) {
+                    this->_storage->setFilterRatio(this->_jsonDocument["filterRatio"]);
                 }
-                if (root["filterRatioCalibration"] > 0.0 && root["filterRatioCalibration"] < 1.0) {
-                    this->_storage->setFilterRatioCalibration(root["filterRatioCalibration"]);
+                if (this->_jsonDocument["filterRatioCalibration"] > 0.0 && this->_jsonDocument["filterRatioCalibration"] < 1.0) {
+                    this->_storage->setFilterRatioCalibration(this->_jsonDocument["filterRatioCalibration"]);
                 }
                 if (this->_stateManager->isStateCalibration()) {
-                    this->_rssi->setFilterRatio(root["filterRatioCalibration"]);
+                    this->_rssi->setFilterRatio(this->_jsonDocument["filterRatioCalibration"]);
                 } else {
-                    this->_rssi->setFilterRatio(root["filterRatio"]);
+                    this->_rssi->setFilterRatio(this->_jsonDocument["filterRatio"]);
                 }
 
-                if (root["triggerValue"] > 10 && root["triggerValue"] < 1024) {
+                if (this->_jsonDocument["triggerValue"] > 10 && this->_jsonDocument["triggerValue"] < 1024) {
                     // allow setting the trigger value outside of calibration mode
-                    if (!this->_lapDetector->isCalibrating() && root["triggerValue"] != this->_lapDetector->getTriggerValue()) {
+                    if (!this->_lapDetector->isCalibrating() && this->_jsonDocument["triggerValue"] != this->_lapDetector->getTriggerValue()) {
 #ifdef DEBUG
-                        Serial.printf("setting new trigger value: %d\n", root["triggerValue"]);
+                        Serial.printf("setting new trigger value: %d\n", this->_jsonDocument["triggerValue"]);
 #endif
-                        this->_lapDetector->setTriggerValue(root["triggerValue"]);
+                        this->_lapDetector->setTriggerValue(this->_jsonDocument["triggerValue"]);
                     }
                 }
 

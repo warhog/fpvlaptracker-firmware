@@ -8,7 +8,7 @@ BtComm::BtComm(BluetoothSerial *btSerial, util::Storage *storage, lap::Rssi *rss
     lap::LapDetector *lapDetector, battery::BatteryMgr *batteryMgr, const char *version,
     statemanagement::StateManager *stateManager, comm::WifiComm *wifiComm, unsigned long *loopTime) : 
     Comm(storage, rssi, rx5808, lapDetector, batteryMgr, version, stateManager, loopTime), _serialGotLine(false),
-    _serialString(false), _btSerial(btSerial), _jsonBuffer(400), _wifiComm(wifiComm) {
+    _serialString(false), _btSerial(btSerial), _wifiComm(wifiComm), _jsonDocument(1024) {
         this->_version = version;
 }
 
@@ -38,11 +38,11 @@ void BtComm::reg() {
 }
 
 void BtComm::lap(unsigned long lapTime, unsigned int rssi) {
-    JsonObject& root = this->prepareJson();
-    root["type"] = "lap";
-    root["lapTime"] = lapTime;
-    root["rssi"] = rssi;
-    this->sendJson(root);
+    this->prepareJson();
+    this->_jsonDocument["type"] = "lap";
+    this->_jsonDocument["lapTime"] = lapTime;
+    this->_jsonDocument["rssi"] = rssi;
+    this->sendJson();
 }
 
 void BtComm::sendBtMessage(String msg) {
@@ -88,10 +88,10 @@ void BtComm::processIncomingMessage() {
 
         if (this->_serialString.length() >= 11 && this->_serialString.substring(0, 11) == "GET version") {
             // get the version
-            JsonObject& root = this->prepareJson();
-            root["type"] = "version";
-            root["version"] = this->_version;
-            this->sendJson(root);
+            this->prepareJson();
+            this->_jsonDocument["type"] = "version";
+            this->_jsonDocument["version"] = this->_version;
+            this->sendJson();
         } else if (this->_serialString.length() >= 8 && this->_serialString.substring(0, 8) == "GET rssi") {
             // get the current rssi
             this->sendFastRssiData(this->_rssi->getRssi());
@@ -114,8 +114,13 @@ void BtComm::processIncomingMessage() {
             this->processStoreConfig();
         } else if (this->_serialString.length() >= 10 && this->_serialString.substring(0, 10) == "START scan") {
             // start channel scan
-            this->_rx5808->startScan(this->_storage->getChannelIndex());
+            this->_rx5808->startScan(this->_storage->getFrequency());
             this->_stateManager->update(statemanagement::state_enum::SCAN);
+            this->sendGenericState("scan", "started");
+        } else if (this->_serialString.length() >= 14 && this->_serialString.substring(0, 14) == "START deepscan") {
+            // start deep channel scan
+            this->_rx5808->startScan(this->_storage->getFrequency());
+            this->_stateManager->update(statemanagement::state_enum::DEEPSCAN);
             this->sendGenericState("scan", "started");
         } else if (this->_serialString.length() >= 9 && this->_serialString.substring(0, 9) == "STOP scan") {
             // stop channel scan
@@ -144,26 +149,26 @@ void BtComm::processIncomingMessage() {
  * received get device data message
  *-------------------------------------------------*/
 void BtComm::processGetDeviceData() {
-    JsonObject& root = this->prepareJson();
-    root["type"] = "device";
-    root["frequency"] = freq::Frequency::getFrequencyForChannelIndex(this->_storage->getChannelIndex());
-    root["minimumLapTime"] = this->_storage->getMinLapTime();
-    root["ssid"] = this->_storage->getSsid();
-    root["password"] = this->_storage->getWifiPassword();
-    root["triggerThreshold"] = this->_storage->getTriggerThreshold();
-    root["triggerThresholdCalibration"] = this->_storage->getTriggerThresholdCalibration();
-    root["calibrationOffset"] = this->_storage->getCalibrationOffset();
-    root["state"] = this->_stateManager->toString(this->_stateManager->getState());
-    root["triggerValue"] = this->_lapDetector->getTriggerValue();
-    root["voltage"] = this->_batteryMgr->getVoltage();
-    root["uptime"] = millis() / 1000;
-    root["defaultVref"] = this->_storage->getDefaultVref();
-    root["wifiState"] = this->_wifiComm->isConnected();
-    root["rssi"] = this->_rssi->getRssi();
-    root["loopTime"] = *this->_loopTime;
-    root["filterRatio"] = this->_storage->getFilterRatio();
-    root["filterRatioCalibration"] = this->_storage->getFilterRatioCalibration();
-    this->sendJson(root);
+    this->prepareJson();
+    this->_jsonDocument["type"] = "device";
+    this->_jsonDocument["frequency"] = this->_storage->getFrequency();
+    this->_jsonDocument["minimumLapTime"] = this->_storage->getMinLapTime();
+    this->_jsonDocument["ssid"] = this->_storage->getSsid();
+    this->_jsonDocument["password"] = this->_storage->getWifiPassword();
+    this->_jsonDocument["triggerThreshold"] = this->_storage->getTriggerThreshold();
+    this->_jsonDocument["triggerThresholdCalibration"] = this->_storage->getTriggerThresholdCalibration();
+    this->_jsonDocument["calibrationOffset"] = this->_storage->getCalibrationOffset();
+    this->_jsonDocument["state"] = this->_stateManager->toString(this->_stateManager->getState());
+    this->_jsonDocument["triggerValue"] = this->_lapDetector->getTriggerValue();
+    this->_jsonDocument["voltage"] = this->_batteryMgr->getVoltage();
+    this->_jsonDocument["uptime"] = millis() / 1000;
+    this->_jsonDocument["defaultVref"] = this->_storage->getDefaultVref();
+    this->_jsonDocument["wifiState"] = this->_wifiComm->isConnected();
+    this->_jsonDocument["rssi"] = this->_rssi->getRssi();
+    this->_jsonDocument["loopTime"] = *this->_loopTime;
+    this->_jsonDocument["filterRatio"] = this->_storage->getFilterRatio();
+    this->_jsonDocument["filterRatioCalibration"] = this->_storage->getFilterRatioCalibration();
+    this->sendJson();
 }
 
 /*---------------------------------------------------
@@ -171,9 +176,8 @@ void BtComm::processGetDeviceData() {
  *-------------------------------------------------*/
 void BtComm::processStoreConfig() {
     // received config
-    this->_jsonBuffer.clear();
-    JsonObject& root = this->_jsonBuffer.parseObject(this->_serialString.substring(11));
-    if (!root.success()) {
+    DeserializationError error = deserializeJson(this->_jsonDocument, this->_serialString.substring(11));
+    if (error) {
 #ifdef DEBUG
         Serial.println(F("failed to parse config"));
 #endif
@@ -183,54 +187,64 @@ void BtComm::processStoreConfig() {
         Serial.printf("got config: %s\n", this->_serialString.substring(11).c_str());
 #endif
         bool reboot = false;
-        this->_storage->setMinLapTime(root["minimumLapTime"]);
+        if (this->_storage->getMinLapTime() != this->_jsonDocument["minimumLapTime"]) {
+            this->_storage->setMinLapTime(this->_jsonDocument["minimumLapTime"]);
+        }
         
-        if (this->_storage->getSsid() != root["ssid"]) {
+        if (this->_storage->getSsid() != this->_jsonDocument["ssid"]) {
             reboot = true;
+            this->_storage->setSsid(this->_jsonDocument["ssid"]);
         }
-        this->_storage->setSsid(root["ssid"]);
 
-        if (this->_storage->getWifiPassword() != root["password"]) {
+        if (this->_storage->getWifiPassword() != this->_jsonDocument["password"]) {
             reboot = true;
+            this->_storage->setWifiPassword(this->_jsonDocument["password"]);
         }
-        this->_storage->setWifiPassword(root["password"]);
 
-        if (this->_storage->getChannelIndex() != freq::Frequency::getChannelIndexForFrequency(root["frequency"])) {
+        if (this->_storage->getFrequency() != this->_jsonDocument["frequency"]) {
             reboot = true;
+            this->_storage->setFrequency(this->_jsonDocument["frequency"]);
         }
-        this->_storage->setChannelIndex(freq::Frequency::getChannelIndexForFrequency(root["frequency"]));
 
-        if (this->_storage->getTriggerThreshold() != root["triggerThreshold"]) {
+        if (this->_storage->getTriggerThreshold() != this->_jsonDocument["triggerThreshold"]) {
             reboot = true;
+            this->_storage->setTriggerThreshold(this->_jsonDocument["triggerThreshold"]);
         }
-        this->_storage->setTriggerThreshold(root["triggerThreshold"]);
 
-        if (this->_storage->getTriggerThresholdCalibration() != root["triggerThresholdCalibration"]) {
+        if (this->_storage->getTriggerThresholdCalibration() != this->_jsonDocument["triggerThresholdCalibration"]) {
             reboot = true;
+            this->_storage->setTriggerThresholdCalibration(this->_jsonDocument["triggerThresholdCalibration"]);
         }
-        this->_storage->setTriggerThresholdCalibration(root["triggerThresholdCalibration"]);
 
-        this->_storage->setCalibrationOffset(root["calibrationOffset"]);
+        if (this->_storage->getCalibrationOffset() != this->_jsonDocument["calibrationOffset"]) {
+            this->_storage->setCalibrationOffset(this->_jsonDocument["calibrationOffset"]);
+        }
         
-        if (this->_storage->getDefaultVref() != root["defaultVref"]) {
+        if (this->_storage->getDefaultVref() != this->_jsonDocument["defaultVref"]) {
             reboot = true;
+            this->_storage->setDefaultVref(this->_jsonDocument["defaultVref"]);
         }
-        this->_storage->setDefaultVref(root["defaultVref"]);
 
-        this->_storage->setFilterRatio(root["filterRatio"]);
-        this->_storage->setFilterRatioCalibration(root["filterRatioCalibration"]);
+        if (this->_storage->getFilterRatio() != this->_jsonDocument["filterRatio"]) {
+            this->_storage->setFilterRatio(this->_jsonDocument["filterRatio"]);
+        }
+        
+        if (this->_storage->getFilterRatioCalibration() != this->_jsonDocument["filterRatioCalibration"]) {
+            this->_storage->setFilterRatioCalibration(this->_jsonDocument["filterRatioCalibration"]);
+        }
+
         if (this->_stateManager->isStateCalibration()) {
-            this->_rssi->setFilterRatio(root["filterRatioCalibration"]);
+            this->_rssi->setFilterRatio(this->_jsonDocument["filterRatioCalibration"]);
         } else {
-            this->_rssi->setFilterRatio(root["filterRatio"]);
+            this->_rssi->setFilterRatio(this->_jsonDocument["filterRatio"]);
         }
 
         // allow setting the trigger value outside of calibration mode
-        if (!this->_lapDetector->isCalibrating() && root["triggerValue"] != this->_lapDetector->getTriggerValue()) {
+        if (!this->_lapDetector->isCalibrating() && this->_jsonDocument["triggerValue"] != this->_lapDetector->getTriggerValue()) {
 #ifdef DEBUG
-            Serial.printf("setting new trigger value: %d\n", root["triggerValue"]);
+            Serial.printf("setting new trigger value: %d\n", this->_jsonDocument["triggerValue"]);
 #endif
-            this->_lapDetector->setTriggerValue(root["triggerValue"]);
+            this->_lapDetector->setTriggerValue(this->_jsonDocument["triggerValue"]);
         }
 
         this->_storage->store();
@@ -245,47 +259,44 @@ void BtComm::processStoreConfig() {
 }
 
 void BtComm::sendScanData(unsigned int frequency, unsigned int rssi) {
-    JsonObject& root = this->prepareJson();
-    root["type"] = "scan";
-    root["frequency"] = frequency;
-    root["rssi"] = rssi;
-    this->sendJson(root);
+    this->prepareJson();
+    this->_jsonDocument["type"] = "scan";
+    this->_jsonDocument["frequency"] = frequency;
+    this->_jsonDocument["rssi"] = rssi;
+    this->sendJson();
 }
 
 void BtComm::sendFastRssiData(unsigned int rssi) {
-    JsonObject& root = this->prepareJson();
-    root["type"] = "rssi";
-    root["rssi"] = rssi;
-    this->sendJson(root);
+    this->_jsonDocument["type"] = "rssi";
+    this->_jsonDocument["rssi"] = rssi;
+    this->sendJson();
 }
 
 void BtComm::sendGenericState(const char* type, const char* state) {
-    JsonObject& root = this->prepareJson();
-    root["type"] = "state";
-    root[type] = state;
-    this->sendJson(root);
+    this->prepareJson();
+    this->_jsonDocument["type"] = "state";
+    this->_jsonDocument[type] = state;
+    this->sendJson();
 }
 
 void BtComm::sendCalibrationDone() {
     this->sendGenericState("calibration", "done");
 }
 
-JsonObject& BtComm::prepareJson() {
-    this->_jsonBuffer.clear();
-    JsonObject& root = this->_jsonBuffer.createObject();
-    return root;
+void BtComm::prepareJson() {
+    this->_jsonDocument.clear();
 }
 
 void BtComm::sendVoltageAlarm() {
-    JsonObject& root = this->prepareJson();
-    root["type"] = "alarm";
-    root["msg"] = "Battery voltage low!";
-    this->sendJson(root);
+    this->prepareJson();
+    this->_jsonDocument["type"] = "alarm";
+    this->_jsonDocument["msg"] = "Battery voltage low!";
+    this->sendJson();
 }
 
-void BtComm::sendJson(JsonObject& root) {
+void BtComm::sendJson() {
     String result("");
-    root.printTo(result);
+    serializeJson(this->_jsonDocument, result);
     this->sendBtMessageWithNewline(result);
 }
 

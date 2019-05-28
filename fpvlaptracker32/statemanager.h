@@ -11,6 +11,7 @@ namespace statemanagement {
         CALIBRATION,
         CALIBRATION_DONE,
         SCAN,
+        DEEPSCAN,
         RACE,
         RSSI,
         RESTORE_STATE,
@@ -33,6 +34,8 @@ namespace statemanagement {
                 return "Error";
             } else if (state == state_enum::SCAN) {
                 return "Scan";
+            } else if (state == state_enum::DEEPSCAN) {
+                return "Deep scan";
             } else if (state == state_enum::RSSI) {
                 return "RSSI";
             } else if (state == state_enum::STARTUP) {
@@ -63,6 +66,10 @@ namespace statemanagement {
 
         boolean isStateScan() {
             return this->_state == state_enum::SCAN;
+        }
+
+        boolean isStateDeepscan() {
+            return this->_state == state_enum::DEEPSCAN;
         }
 
         boolean isStateError() {

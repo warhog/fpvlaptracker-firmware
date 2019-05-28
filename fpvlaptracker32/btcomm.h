@@ -34,8 +34,8 @@ namespace comm {
         void disconnect();
 
     private:
-        void sendJson(JsonObject& root);
-        JsonObject& prepareJson();
+        void sendJson();
+        void prepareJson();
         void sendBtMessage(String msg);
         void sendBtMessage(String msg, boolean newLine);
         void sendBtMessageWithNewline(String msg);
@@ -44,7 +44,7 @@ namespace comm {
         BluetoothSerial *_btSerial;
         bool _serialGotLine;
         String _serialString;
-        DynamicJsonBuffer _jsonBuffer;
+        DynamicJsonDocument _jsonDocument;
         const char *_version;
         comm::WifiComm *_wifiComm;
     };

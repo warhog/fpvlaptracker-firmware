@@ -20,7 +20,7 @@ namespace comm {
                 battery::BatteryMgr *batteryMgr, const char *version, statemanagement::StateManager *stateManager,
                 unsigned long *loopTime) :
                 _storage(storage), _rssi(rssi), _rx5808(rx5808), _lapDetector(lapDetector), _batteryMgr(batteryMgr),
-                _version(version), _stateManager(stateManager), _loopTime(loopTime) {}
+                _version(version), _stateManager(stateManager), _loopTime(loopTime), _jsonDocument(1024) {}
             void begin();
             void handle();
             bool isConnected() {
@@ -31,8 +31,8 @@ namespace comm {
                 this->_server.stop();
             }
         private:
-            JsonObject& prepareJson();
-            void sendJson(JsonObject& root);
+            void prepareJson();
+            void sendJson();
             String concat(String text);
 
             WebServer _server;
@@ -42,7 +42,7 @@ namespace comm {
             lap::LapDetector *_lapDetector;
             battery::BatteryMgr *_batteryMgr;
             statemanagement::StateManager *_stateManager;
-            DynamicJsonBuffer _jsonBuffer;
+            DynamicJsonDocument _jsonDocument;
             const char *_version;
             bool _connected;
             unsigned long *_loopTime;

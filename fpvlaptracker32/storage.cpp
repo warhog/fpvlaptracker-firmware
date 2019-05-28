@@ -4,7 +4,7 @@ using namespace util;
 
 //#define DEBUG
 
-const char* CONFIG_VERSION = "01E";
+const char* CONFIG_VERSION = "020";
 const unsigned int CONFIG_START = 32;
 
 #ifndef max
@@ -13,13 +13,13 @@ const unsigned int CONFIG_START = 32;
 
 // do also adjust values in lapdetector constructor if you want to change defaults
 // also think of changing the default values in the app
-Storage::Storage() : _channelIndex(0), _minLapTime(4000), _ssid("flt-base"), _wifiPassword("flt-base"),
+Storage::Storage() : _frequency(freq::LOWEST_FREQUENCY), _minLapTime(4000), _ssid("flt-base"), _wifiPassword("flt-base"),
     _triggerThresholdCalibration(240), _triggerThreshold(120), _calibrationOffset(30), _defaultVref(1100),
     _filterRatio(0.05), _filterRatioCalibration(0.005) {
 }
 
 void Storage::loadFactoryDefaults() {
-    this->_channelIndex = 0;
+    this->_frequency = 0;
     this->_minLapTime = 4000;
     this->_ssid = "flt-base";
     this->_wifiPassword = "flt-base";
@@ -42,7 +42,7 @@ void Storage::load() {
         }
         this->_ssid = String(storage.ssid);
         this->_wifiPassword = String(storage.wifiPassword);
-        this->_channelIndex = storage.channelIndex;
+        this->_frequency = storage.frequency;
         this->_minLapTime = storage.minLapTime;
         this->_triggerThreshold = storage.triggerThreshold;
         this->_triggerThresholdCalibration = storage.triggerThresholdCalibration;
@@ -67,7 +67,7 @@ void Storage::store() {
     strncpy(storage.version, CONFIG_VERSION, 3);
     strncpy(storage.ssid, this->_ssid.c_str(), max(63, strlen(this->_ssid.c_str())));
     strncpy(storage.wifiPassword, this->_wifiPassword.c_str(), max(63, strlen(this->_wifiPassword.c_str())));
-    storage.channelIndex = this->_channelIndex;
+    storage.frequency = this->_frequency;
     storage.minLapTime = this->_minLapTime;
     storage.triggerThreshold = this->_triggerThreshold;
     storage.triggerThresholdCalibration = this->_triggerThresholdCalibration;
